@@ -1,0 +1,28 @@
+{
+    "walkthrough": [
+        {
+            "title": "Post 1",
+            "url": "post1.html",
+            "tags": ["javascript", "webdev"]
+        },
+        {
+            "title": "Post 4",
+            "url": "post4.html",
+            "tags": ["tutorial", "webdev"]
+        }
+    ],
+    "protocols": [
+        {
+            "title": "Post 2",
+            "url": "post2.html",
+            "tags": ["html", "css"]
+        }
+    ],
+    "other": [
+        {
+            "title": "Post 3",
+            "url": "post3.html",
+            "tags": ["javascript"]
+        }
+    ]
+}

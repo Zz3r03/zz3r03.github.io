@@ -1,0 +1,109 @@
+body {
+    margin: 0;
+    font-family:Arial, Helvetica, sans-serif ;
+    display: flex;
+    flex-direction: column;
+    color: #bb93c5;
+    background-color: #121212;
+    overflow: hidden;
+}
+
+.upper-menu {
+    width: 100%;
+    background-color: transparent;
+    padding: 15px 20px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    background-color: transparent;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.upper-menu nav {
+    display: flex;
+    margin: auto;
+    gap: 50px;
+    align-self: center;
+}
+
+.upper-menu nav a {
+    color: #bb93c5;
+    text-decoration: none;
+    font-size: 16px;
+    transition: color 0.3s ease;
+}
+
+.upper-menu nav a:hover {
+    color: #9860a9;
+}
+
+.main-content {
+    width: 70%;
+    margin: 0px auto 0px;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: #282828;
+    border-radius: 5px;
+    overflow-y: auto;
+    height: calc(100vh - 65px);
+}
+
+.search-menu {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #222222;
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 1001;
+    width: 400px;
+    max-width: 90%;
+}
+
+.search-menu.visible {
+    display: block;
+}
+
+.search-menu input {
+    width: 85%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #575757;
+    border-radius: 5px;
+    background-color: #1e1a1f;
+    color: #bb93c5;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.search-menu input:focus {
+    border-color: #9860a9;
+}
+
+.search-results {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 10px;
+}
+
+.search-results a {
+    display: block;
+    padding: 10px;
+    background-color: #bb93c5;
+    color: black;
+    text-decoration: none;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.search-results a:hover {
+    background-color: #9860a9;
+}
