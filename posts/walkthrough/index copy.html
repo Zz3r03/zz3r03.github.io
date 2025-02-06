@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Walkthroughs</title>
+    <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+    <!-- Upper Menu -->
+    <div class="upper-menu">
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="walkthroughs.html">Walkthroughs</a>
+            <a href="protocols.html">Protocols</a>
+            <a href="other.html">Other</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h1>Walkthroughs</h1>
+        <!-- Search Bar -->
+        <input type="text" id="walkthroughSearch" placeholder="Search walkthroughs..." oninput="filterWalkthroughs()">
+        <!-- Walkthrough Posts Container -->
+        <div id="walkthroughResults" class="search-results">
+            <!-- Walkthrough posts will be dynamically added here -->
+        </div>
+    </div>
+
+    <script>
+        // Load and display walkthrough posts when the page loads
+        async function loadWalkthroughs() {
+            try {
+                const response = await fetch('../../src/posts.json');
+                const postsByType = await response.json();
+                const walkthroughPosts = postsByType.walkthrough || [];
+
+                // Display all walkthrough posts by default
+                const walkthroughResults = document.getElementById('walkthroughResults');
+                walkthroughResults.innerHTML = ''; // Clear previous results
+
+                if (walkthroughPosts.length > 0) {
+                    walkthroughPosts.forEach(post => {
+                        const link = document.createElement('a');
+                        link.href = post.url;
+                        link.textContent = post.title;
+                        link.classList.add('search-result-item');
+                        walkthroughResults.appendChild(link);
+                    });
+                } else {
+                    walkthroughResults.innerHTML = '<p>No walkthroughs found.</p>';
+                }
+            } catch (error) {
+                console.error("Failed to load walkthroughs:", error);
+            }
+        }
+
+        // Filter walkthrough posts based on search input
+        function filterWalkthroughs() {
+            const query = document.getElementById('walkthroughSearch').value.trim().toLowerCase();
+            const walkthroughResults = document.getElementById('walkthroughResults');
+            walkthroughResults.innerHTML = ''; // Clear pzrevious results
+
+            fetch('/src/posts.json')
+                .then(response => response.json())
+                .then(postsByType => {
+                    const walkthroughPosts = postsByType.walkthrough || [];
+                    const filteredPosts = query ?
+                        walkthroughPosts.filter(post =>
+                            post.title.toLowerCase().includes(query) ||
+                            post.tags.some(tag => tag.toLowerCase().includes(query))
+                        ) :
+                        walkthroughPosts; // Show all posts if the search bar is empty
+
+                    if (filteredPosts.length > 0) {
+                        filteredPosts.forEach(post => {
+                            const link = document.createElement('a');
+                            link.href = post.url;
+                            link.textContent = post.title;
+                            link.classList.add('search-result-item');
+                            walkthroughResults.appendChild(link);
+                        });
+                    } else {
+                        walkthroughResults.innerHTML = '<p>No walkthroughs found.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error("Failed to filter walkthroughs:", error);
+                });
+        }
+
+        // Load walkthroughs when the page loads
+        window.onload = loadWalkthroughs;
+    </script>
+</body>
+</html>

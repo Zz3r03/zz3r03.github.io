@@ -2,7 +2,7 @@
 let postsByType = {};
 
 async function loadPosts() {
-    const response = await fetch('posts.json');
+    const response = await fetch(`/src/posts.json?${new Date().getTime()}`); // Cache-busting query parameter
     postsByType = await response.json();
 }
 
@@ -111,16 +111,32 @@ searchInput.addEventListener('input', () => {
     if (query) {
         // Flatten all posts into a single array for searching
         const allPosts = Object.values(postsByType).flat();
-        const filteredPosts = allPosts.filter(post =>
-            post.title.toLowerCase().includes(query) ||
-            post.tags.some(tag => tag.toLowerCase().includes(query))
-        );
+
+        // Check if the query includes a type filter (e.g., "walkthrough: javascript")
+        const typeFilter = query.startsWith("walkthrough:") ? "walkthrough" :
+                           query.startsWith("protocols:") ? "protocols" :
+                           query.startsWith("other:") ? "other" :
+                           null;
+
+        const searchTerm = typeFilter ? query.split(":")[1].trim() : query;
+
+        const filteredPosts = allPosts.filter(post => {
+            // Filter by type if a type filter is specified
+            if (typeFilter && post.type !== typeFilter) {
+                return false;
+            }
+            // Filter by title or tags
+            return (
+                post.title.toLowerCase().includes(searchTerm) ||
+                post.tags.some(tag => tag.toLowerCase().includes(searchTerm))
+            );
+        });
 
         if (filteredPosts.length > 0) {
             filteredPosts.forEach(post => {
                 const link = document.createElement('a');
                 link.href = post.url;
-                link.textContent = post.title;
+                link.textContent = `${post.title} - ${post.type}`; // Show post type in results
                 link.classList.add('search-result-item');
                 searchResults.appendChild(link);
             });

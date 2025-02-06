@@ -1,9 +1,10 @@
 {
     "walkthrough": [
         {
-            "title": "Post 1",
-            "url": "post1.html",
-            "tags": ["javascript", "webdev"]
+            "title": "Underpass",
+            "url": "underpass",
+            "tags": ["linux", "snmp", "radius"],
+            "type": "walkthrough"
         },
         {
             "title": "Post 4",

@@ -46,7 +46,7 @@ body {
     margin: 0px auto 0px;
     padding: 20px;
     box-sizing: border-box;
-    background-color: #282828;
+    background-color: #181818;
     border-radius: 5px;
     overflow-y: auto;
     height: calc(100vh - 65px);
@@ -58,7 +58,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: #222222;
+    background-color: #181818;
     padding: 20px;
     border-radius: 10px;
     z-index: 1001;
@@ -107,3 +107,39 @@ body {
 .search-results a:hover {
     background-color: #9860a9;
 }
+
+pre {
+    background-color: #282828;
+    padding: 20px;
+    border-radius: 15px;
+    overflow: auto;
+}
+
+code {
+    color: #d2b7d9;
+}
+
+img {
+    width: 70%;
+    margin-left: 1%;
+    box-shadow: #121212;
+}
+
+/* Search Bar */
+#walkthroughSearch {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #575757;
+    border-radius: 5px;
+    background-color: #1e1a1f;
+    color: white;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+#walkthroughSearch:focus {
+    border-color: #1abc9c;
+}
+
