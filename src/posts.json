@@ -2,21 +2,31 @@
     "walkthrough": [
         {
             "title": "Underpass",
-            "url": "underpass",
+            "url": "/walkthrough/posts/underpass",
             "tags": ["linux", "snmp", "radius"],
             "type": "walkthrough"
         },
         {
             "title": "Post 4",
             "url": "post4.html",
-            "tags": ["tutorial", "webdev"]
+            "tags": ["tutorial", "webdev"],
+            "type": "walkthrough"
         }
     ],
-    "protocols": [
+    "protocol": [
         {
             "title": "Post 2",
             "url": "post2.html",
-            "tags": ["html", "css"]
+            "tags": ["html", "css"],
+            "type": "protocol"
+        }
+    ],
+    "tool": [
+        {
+            "title": "Post 5",
+            "url": "post5.html",
+            "tags": ["html", "css"],
+            "type": "tool"
         }
     ],
     "other": [

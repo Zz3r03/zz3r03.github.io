@@ -21,6 +21,7 @@ body {
     top: 0;
     left: 0;
     z-index: 1000;
+    padding-bottom: 1%;
 }
 
 .upper-menu nav {
@@ -42,7 +43,7 @@ body {
 }
 
 .main-content {
-    width: 70%;
+    width: 60%;
     margin: 0px auto 0px;
     padding: 20px;
     box-sizing: border-box;
@@ -125,9 +126,8 @@ img {
     box-shadow: #121212;
 }
 
-/* Search Bar */
-#walkthroughSearch {
-    width: 100%;
+#walkthroughSearch, #protocolSearch, #toolSearch, #otherSearch {
+    width: 98.25%;
     padding: 10px;
     margin-bottom: 20px;
     border: 1px solid #575757;
@@ -139,7 +139,77 @@ img {
     transition: border-color 0.3s ease;
 }
 
-#walkthroughSearch:focus {
-    border-color: #1abc9c;
+#walkthroughSearch:focus, #protocolSearch:focus {
+    border-color: #9860a9;
 }
 
+/* Post Item */
+.post-item {
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    background-color: #282828;
+    border-radius: 5px;
+    border: 1px solid grey;
+    transition: background-color 0.3s ease;
+}
+
+/* Post Title */
+.post-title {
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Post Tags */
+.post-tags {
+    margin-left: 5px;
+    color: #bb93c5;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.menu-button {
+    background-color: #a471b2;
+    color: white;
+    cursor: pointer;
+    z-index: 10;
+    transition: background-color 0.3s ease; /* Smooth transition for background color */
+    border-radius: 5px; /* Rounded corners for a modern look */
+    text-align: center; /* Center the text */
+    line-height: 30px; /* Vertically center the text (equal to height) */
+    font-size: 15px; /* Font size */
+    width: 30px;
+    border: transparent;
+}
+
+.menu-button:hover {
+    background-color: #9860a9; /* Darker shade when hovered */
+}
+
+/* Lateral Menu */
+.lateral-index {
+    position: fixed;
+    top: 0;
+    left: -1000px; /* Start off-screen */
+    width: 300px; /* Adjust the width as needed */
+    height: 100%;
+    background-color: #333; /* Background color */
+    color: white;
+    padding: 20px;
+    transition: transform 0.3s ease-in-out; /* Smooth transition for the sliding effect */
+    z-index: 5;
+    overflow: hidden; /* Prevent overflow if the menu slides off-screen */
+}
+
+/* When the menu is open, move it into view */
+.lateral-index.open {
+    transform: translateX(1000px); /* Move the menu to the right when it's opened */
+}
+
+#indexList {
+    margin-top: 15%;
+    text-decoration: none;
+}

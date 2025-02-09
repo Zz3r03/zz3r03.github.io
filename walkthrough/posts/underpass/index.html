@@ -6,22 +6,80 @@
     <title>Home Page</title>
     <link rel="stylesheet" href="/src/styles.css">
 </head>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const lateralIndex = document.getElementById('lateralIndex');
+        const menuButton = document.querySelector('.menu-button');
+        const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+        const dropdownMenus = document.querySelectorAll('.dropdown-menu');
+
+        lateralIndex.classList.remove('open'); // Ensures it's hidden on load (off-screen)
+        dropdownMenus.forEach(menu => menu.style.display = 'none'); // Hide dropdowns initially
+
+        menuButton.addEventListener('click', function () {
+            lateralIndex.classList.toggle('open'); // Toggle the 'open' class to slide the menu
+        });
+
+        dropdownToggles.forEach(toggle => {
+            toggle.addEventListener('click', function () {
+                const dropdownMenu = this.nextElementSibling; // Get the next <ul> (the dropdown)
+                if (dropdownMenu.style.display === 'block') {
+                    dropdownMenu.style.display = 'none';
+                } else {
+                    dropdownMenu.style.display = 'block';
+                }
+            });
+        });
+    });
+
+</script>
+
 <body>
     <!-- Upper Menu -->
     <div class="upper-menu">
+        <button class="menu-button">></button>
         <nav>
             <a href="/">Homepage</a>
-            <a href="/posts/walkthrough/index.html"></a>
-            <a href="#">placeholder3</a>
+            <a href="/walkthrough">Walkthroughs</a>
+            <a href="/tools">Tools</a>
+            <a href="/protocols">Protocols</a>
+            <a href="/other">Other</a>
         </nav>
     </div>
+
+    <!-- Lateral Index -->
+    <div class="lateral-index" id="lateralIndex">
+        <ul id="indexList">
+            <li class="index-item">
+                <span class="dropdown-toggle">Scanning</span>
+                <ul class="dropdown-menu">
+                    <a href="#passive"><li>Passive</li></a>
+                    <a href="#active"><li>Active</li></a>
+                </ul>
+            </li>
+            <li class="index-item">
+                <span class="dropdown-toggle">Attack</span>
+                <ul class="dropdown-menu">
+                    <a href="#user"><li>Gainig access</li></a>
+                    <a href="#privesc"><li>Privilege Scalation</li></a>
+                </ul>
+            </li>
+            <a href="#solutions"><li class="index-item">Solutions</li></a>
+            <a href="#links"><li class="index-item">Links</li></a>
+        </ul>
+    </div>
+
+    
+
+
 
     <!-- Main Content -->
     <div class="main-content">
         <h1>Underpass</h1>
         <div> 
             <h2>Scanning</h2>
-<h3>Passive</h3>
+<h3 id="passive">Passive</h3>
 <pre><code>┌──(oriol㉿zero)-[~/underpass]
 └─$ ping -c1 10.10.11.48   
 PING 10.10.11.48 (10.10.11.48) 56(84) bytes of data.
@@ -83,7 +141,7 @@ ftp&gt;
 ERROR 2002 (HY000): Can't connect to server on '10.10.11.48' (115)
 </code></pre>
 <p>Pretty disappointing passive scan, let's see if the active goes better.</p>
-<h3>Active</h3>
+<h3 id="active">Active</h3>
 <p>As always, I do all the ports with the <code>-p</code> flag and do a more deep scan with the <code>-sC</code> and <code>-sV</code> flags, which use the default scripts and enumerate versions, respectivelly.</p>
 <pre><code>┌──(oriol㉿zero)-[~], I will add the `-sU` tag. Maybe this way we encounter some └─$ nmap -sC -sV -p- -Pn 10.10.11.48
 Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-02-02 12:34 CET
@@ -268,6 +326,7 @@ Radius (<strong>R</strong>emote <strong>A</strong>uthentication <strong>D</stron
 <img src="./src/underpass03.png">
 <p>And we have the verison: <strong>daloRADIUS 2.2 beta</strong></p>
 <h2>Attack</h2>
+<h3 id="user">Gaining access</h3>
 <p>I will try to follow the SNMP RCE page on hacktricks: https://book.hacktricks.wiki/en/network-services-pentesting/pentesting-snmp/snmp-rce.html</p>
 <p>First, the server needs to have the <strong><code>NET-SNMP-EXTEND-MIB</code></strong> extension, which then can be used to execute arbitrary scripts.</p>
 <p>So, let's try it with the snmpwalk command found on the hacktricks site, changing the parameters to adequate to our server.</p>
@@ -312,7 +371,7 @@ Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-126-generic x86_64)
 <p>Yes!
 - <strong>User:</strong> svcMosh
 - <strong>Password:</strong> underwaterfriends</p>
-<h3>Privilege scalation</h3>
+<h3 id="privesc">Privilege scalation</h3>
 <p>id of the user:</p>
 <pre><code>svcMosh@underpass:~$ id
 uid=1002(svcMosh) gid=1002(svcMosh) groups=1002(svcMosh)
@@ -415,7 +474,7 @@ Mosh home page: https://mosh.org
 <pre><code>root@underpass:~# id
 uid=0(root) gid=0(root) groups=0(root)
 </code></pre>
-<h2>Solutions</h2>
+<h2 id="solutions">Solutions</h2>
 <ul>
 <li>Disable default apache page to not give unnecessary information.</li>
 <li>Don't use the public community string on SNMP.</li>
@@ -425,7 +484,7 @@ uid=0(root) gid=0(root) groups=0(root)
 <li>If possible, configure daloradius to not store password in an insecure hash like MD5, and use salt and pepper.</li>
 <li>Don't let a normal user be able to execute programs like mosh with root.</li>
 </ul>
-<h2>Links used</h2>
+<h2 id="links">Links used</h2>
 <ul>
 <li>https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/6/html/deployment_guide/sect-system_monitoring_tools-net-snmp-extending</li>
 <li>https://medium.com/@momo334678/mosh-server-sudo-privilege-escalation-82ef833bb246</li>
@@ -435,19 +494,5 @@ uid=0(root) gid=0(root) groups=0(root)
 <li>https://book.hacktricks.wiki/en/network-services-pentesting/pentesting-snmp/index.html</li>
 <li>https://book.hacktricks.wiki</li>
 </ul>   
-        </div>
-    </div>
-
-    <!-- Search Menu -->
-    <div class="search-menu" id="searchMenu">
-        <div class="search-input-container">
-            <input type="text" id="searchInput" placeholder="Search posts...">
-            <button class="cancel-btn" id="cancelBtn">×</button>
-        </div>
-        <div class="search-results" id="searchResults">
-        </div>
-    </div>
-
-    <script src="scripts.js"></script>
 </body>
 </html>

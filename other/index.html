@@ -3,45 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Walkthroughs</title>
+    <title>others</title>
     <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
     <!-- Upper Menu -->
     <div class="upper-menu">
+        <button class="menu-button">></button>
         <nav>
-            <a href="index.html">Home</a>
-            <a href="walkthroughs.html">Walkthroughs</a>
-            <a href="protocols.html">Protocols</a>
-            <a href="other.html">Other</a>
+            <a href="/">Homepage</a>
+            <a href="/walkthrough">Walkthroughs</a>
+            <a href="/tools">Tools</a>
+            <a href="/protocols">Protocols</a>
+            <a href="/other">Other</a>
         </nav>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
-        <h1>Walkthroughs</h1>
+        <h1>Others</h1>
         <!-- Search Bar -->
-        <input type="text" id="walkthroughSearch" placeholder="Search walkthroughs..." oninput="filterWalkthroughs()">
-        <!-- Walkthrough Posts Container -->
-        <div id="walkthroughResults" class="search-results">
-            <!-- Walkthrough posts will be dynamically added here -->
+        <input type="text" id="otherSearch" placeholder="Search others..." oninput="filterothers()">
+        <!-- others Posts Container -->
+        <div id="otherResults" class="search-results">
+            <!-- others posts will be dynamically added here -->
         </div>
     </div>
 
     <script>
-        // Load and display walkthrough posts when the page loads
-        async function loadWalkthroughs() {
+        // Load and display other posts when the page loads
+        async function loadothers() {
             try {
                 const response = await fetch('/src/posts.json');
                 const postsByType = await response.json();
-                const walkthroughPosts = postsByType.walkthrough || [];
+                const otherPosts = postsByType.other || [];
 
-                // Display all walkthrough posts by default
-                const walkthroughResults = document.getElementById('walkthroughResults');
-                walkthroughResults.innerHTML = ''; // Clear previous results
+                // Display all others posts by default
+                const otherResults = document.getElementById('otherResults');
+                otherResults.innerHTML = ''; // Clear previous results
 
-                if (walkthroughPosts.length > 0) {
-                    walkthroughPosts.forEach(post => {
+                if (otherPosts.length > 0) {
+                    otherPosts.forEach(post => {
                         const postContainer = document.createElement('div');
                         postContainer.classList.add('post-item');
 
@@ -53,35 +55,35 @@
 
                         const tags = document.createElement('div');
                         tags.classList.add('post-tags');
-                        tags.textContent = `Tags: ${post.tags.join(', ')}`;
+                        tags.textContent = `${post.tags.join(', ')}`;
                         postContainer.appendChild(tags);
 
-                        walkthroughResults.appendChild(postContainer);
+                        otherResults.appendChild(postContainer);
                     });
                 } else {
-                    walkthroughResults.innerHTML = '<p>No walkthroughs found.</p>';
+                    otherResults.innerHTML = '<p>No others found.</p>';
                 }
             } catch (error) {
-                console.error("Failed to load walkthroughs:", error);
+                console.error("Failed to load others:", error);
             }
         }
 
-        // Filter walkthrough posts based on search input
-        function filterWalkthroughs() {
-            const query = document.getElementById('walkthroughSearch').value.trim().toLowerCase();
-            const walkthroughResults = document.getElementById('walkthroughResults');
-            walkthroughResults.innerHTML = ''; // Clear previous results
+        // Filter other posts based on search input
+        function filterothers() {
+            const query = document.getElementById('otherSearch').value.trim().toLowerCase();
+            const otherResults = document.getElementById('otherResults');
+            otherResults.innerHTML = ''; // Clear previous results
 
             fetch('/src/posts.json')
                 .then(response => response.json())
                 .then(postsByType => {
-                    const walkthroughPosts = postsByType.walkthrough || [];
+                    const otherPosts = postsByType.other || [];
                     const filteredPosts = query ?
-                        walkthroughPosts.filter(post =>
+                        otherPosts.filter(post =>
                             post.title.toLowerCase().includes(query) ||
                             post.tags.some(tag => tag.toLowerCase().includes(query))
                         ) :
-                        walkthroughPosts; // Show all posts if the search bar is empty
+                        otherPosts; // Show all posts if the search bar is empty
 
                     if (filteredPosts.length > 0) {
                         filteredPosts.forEach(post => {
@@ -96,22 +98,22 @@
 
                             const tags = document.createElement('div');
                             tags.classList.add('post-tags');
-                            tags.textContent = `Tags: ${post.tags.join(', ')}`;
+                            tags.textContent = `${post.tags.join(', ')}`;
                             postContainer.appendChild(tags);
 
-                            walkthroughResults.appendChild(postContainer);
+                            otherResults.appendChild(postContainer);
                         });
                     } else {
-                        walkthroughResults.innerHTML = '<p>No walkthroughs found.</p>';
+                        otherResults.innerHTML = '<p>No others found.</p>';
                     }
                 })
                 .catch(error => {
-                    console.error("Failed to filter walkthroughs:", error);
+                    console.error("Failed to filter others:", error);
                 });
         }
 
-        // Load walkthroughs when the page loads
-        window.onload = loadWalkthroughs;
+        // Load others when the page loads
+        window.onload = loadothers;
     </script>
 </body>
 </html>

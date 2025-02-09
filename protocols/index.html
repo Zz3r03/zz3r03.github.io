@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocols</title>
+    <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+    <!-- Upper Menu -->
+    <div class="upper-menu">
+        <button class="menu-button">></button>
+        <nav>
+            <a href="/">Homepage</a>
+            <a href="/walkthrough">Walkthroughs</a>
+            <a href="/tools">Tools</a>
+            <a href="/protocols">Protocols</a>
+            <a href="/other">Other</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h1>Protocols</h1>
+        <!-- Search Bar -->
+        <input type="text" id="protocolSearch" placeholder="Search protocols..." oninput="filterProtocols()">
+        <!-- Protocols Posts Container -->
+        <div id="protocolResults" class="search-results">
+            <!-- Protocols posts will be dynamically added here -->
+        </div>
+    </div>
+
+    <script>
+        // Load and display protocol posts when the page loads
+        async function loadProtocols() {
+            try {
+                const response = await fetch('/src/posts.json');
+                const postsByType = await response.json();
+                const protocolPosts = postsByType.protocol || [];
+
+                // Display all protocols posts by default
+                const protocolResults = document.getElementById('protocolResults');
+                protocolResults.innerHTML = ''; // Clear previous results
+
+                if (protocolPosts.length > 0) {
+                    protocolPosts.forEach(post => {
+                        const postContainer = document.createElement('div');
+                        postContainer.classList.add('post-item');
+
+                        const link = document.createElement('a');
+                        link.href = post.url;
+                        link.textContent = post.title;
+                        link.classList.add('post-title');
+                        postContainer.appendChild(link);
+
+                        const tags = document.createElement('div');
+                        tags.classList.add('post-tags');
+                        tags.textContent = `${post.tags.join(', ')}`;
+                        postContainer.appendChild(tags);
+
+                        protocolResults.appendChild(postContainer);
+                    });
+                } else {
+                    protocolResults.innerHTML = '<p>No protocols found.</p>';
+                }
+            } catch (error) {
+                console.error("Failed to load protocols:", error);
+            }
+        }
+
+        // Filter protocol posts based on search input
+        function filterProtocols() {
+            const query = document.getElementById('protocolSearch').value.trim().toLowerCase();
+            const protocolResults = document.getElementById('protocolResults');
+            protocolResults.innerHTML = ''; // Clear previous results
+
+            fetch('/src/posts.json')
+                .then(response => response.json())
+                .then(postsByType => {
+                    const protocolPosts = postsByType.protocol || [];
+                    const filteredPosts = query ?
+                        protocolPosts.filter(post =>
+                            post.title.toLowerCase().includes(query) ||
+                            post.tags.some(tag => tag.toLowerCase().includes(query))
+                        ) :
+                        protocolPosts; // Show all posts if the search bar is empty
+
+                    if (filteredPosts.length > 0) {
+                        filteredPosts.forEach(post => {
+                            const postContainer = document.createElement('div');
+                            postContainer.classList.add('post-item');
+
+                            const link = document.createElement('a');
+                            link.href = post.url;
+                            link.textContent = post.title;
+                            link.classList.add('post-title');
+                            postContainer.appendChild(link);
+
+                            const tags = document.createElement('div');
+                            tags.classList.add('post-tags');
+                            tags.textContent = `${post.tags.join(', ')}`;
+                            postContainer.appendChild(tags);
+
+                            protocolResults.appendChild(postContainer);
+                        });
+                    } else {
+                        protocolResults.innerHTML = '<p>No Protocols found.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error("Failed to filter protocols:", error);
+                });
+        }
+
+        // Load protocols when the page loads
+        window.onload = loadProtocols;
+    </script>
+</body>
+</html>

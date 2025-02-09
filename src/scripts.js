@@ -114,7 +114,8 @@ searchInput.addEventListener('input', () => {
 
         // Check if the query includes a type filter (e.g., "walkthrough: javascript")
         const typeFilter = query.startsWith("walkthrough:") ? "walkthrough" :
-                           query.startsWith("protocols:") ? "protocols" :
+                           query.startsWith("protocol:") ? "protocol" :
+                           query.startsWith("tool:") ? "tool" :
                            query.startsWith("other:") ? "other" :
                            null;
 

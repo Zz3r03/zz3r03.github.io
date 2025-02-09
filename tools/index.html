@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tools</title>
+    <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+    <!-- Upper Menu -->
+    <div class="upper-menu">
+        <button class="menu-button">></button>
+        <nav>
+            <a href="/">Homepage</a>
+            <a href="/walkthrough">Walkthroughs</a>
+            <a href="/tools">Tools</a>
+            <a href="/protocols">Protocols</a>
+            <a href="/other">Other</a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h1>Tools</h1>
+        <!-- Search Bar -->
+        <input type="text" id="toolSearch" placeholder="Search tools..." oninput="filtertools()">
+        <!-- tools Posts Container -->
+        <div id="toolResults" class="search-results">
+            <!-- tools posts will be dynamically added here -->
+        </div>
+    </div>
+
+    <script>
+        // Load and display tool posts when the page loads
+        async function loadtools() {
+            try {
+                const response = await fetch('/src/posts.json');
+                const postsByType = await response.json();
+                const toolPosts = postsByType.tool || [];
+
+                // Display all tools posts by default
+                const toolResults = document.getElementById('toolResults');
+                toolResults.innerHTML = ''; // Clear previous results
+
+                if (toolPosts.length > 0) {
+                    toolPosts.forEach(post => {
+                        const postContainer = document.createElement('div');
+                        postContainer.classList.add('post-item');
+
+                        const link = document.createElement('a');
+                        link.href = post.url;
+                        link.textContent = post.title;
+                        link.classList.add('post-title');
+                        postContainer.appendChild(link);
+
+                        const tags = document.createElement('div');
+                        tags.classList.add('post-tags');
+                        tags.textContent = `${post.tags.join(', ')}`;
+                        postContainer.appendChild(tags);
+
+                        toolResults.appendChild(postContainer);
+                    });
+                } else {
+                    toolResults.innerHTML = '<p>No tools found.</p>';
+                }
+            } catch (error) {
+                console.error("Failed to load tools:", error);
+            }
+        }
+
+        // Filter tool posts based on search input
+        function filtertools() {
+            const query = document.getElementById('toolSearch').value.trim().toLowerCase();
+            const toolResults = document.getElementById('toolResults');
+            toolResults.innerHTML = ''; // Clear previous results
+
+            fetch('/src/posts.json')
+                .then(response => response.json())
+                .then(postsByType => {
+                    const toolPosts = postsByType.tool || [];
+                    const filteredPosts = query ?
+                        toolPosts.filter(post =>
+                            post.title.toLowerCase().includes(query) ||
+                            post.tags.some(tag => tag.toLowerCase().includes(query))
+                        ) :
+                        toolPosts; // Show all posts if the search bar is empty
+
+                    if (filteredPosts.length > 0) {
+                        filteredPosts.forEach(post => {
+                            const postContainer = document.createElement('div');
+                            postContainer.classList.add('post-item');
+
+                            const link = document.createElement('a');
+                            link.href = post.url;
+                            link.textContent = post.title;
+                            link.classList.add('post-title');
+                            postContainer.appendChild(link);
+
+                            const tags = document.createElement('div');
+                            tags.classList.add('post-tags');
+                            tags.textContent = `${post.tags.join(', ')}`;
+                            postContainer.appendChild(tags);
+
+                            toolResults.appendChild(postContainer);
+                        });
+                    } else {
+                        toolResults.innerHTML = '<p>No tools found.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error("Failed to filter tools:", error);
+                });
+        }
+
+        // Load tools when the page loads
+        window.onload = loadtools;
+    </script>
+</body>
+</html>
