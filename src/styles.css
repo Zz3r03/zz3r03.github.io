@@ -204,6 +204,11 @@ img {
     overflow: hidden; /* Prevent overflow if the menu slides off-screen */
 }
 
+.lateral-index a{
+    text-decoration: none;
+    color: #bb93c5;
+}
+
 /* When the menu is open, move it into view */
 .lateral-index.open {
     transform: translateX(1000px); /* Move the menu to the right when it's opened */
@@ -212,4 +217,15 @@ img {
 #indexList {
     margin-top: 15%;
     text-decoration: none;
+}
+
+.index-item {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.dropdown-toggle{
+    text-decoration: none;
+    color: #9860a9;
 }
