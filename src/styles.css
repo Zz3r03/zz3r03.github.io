@@ -126,7 +126,7 @@ img {
     box-shadow: #121212;
 }
 
-#walkthroughSearch, #protocolSearch, #toolSearch, #otherSearch {
+#walkthroughSearch, #protocolSearch, #toolSearch, #otherSearch, #attackSearch {
     width: 98.25%;
     padding: 10px;
     margin-bottom: 20px;
@@ -139,7 +139,7 @@ img {
     transition: border-color 0.3s ease;
 }
 
-#walkthroughSearch:focus, #protocolSearch:focus {
+#walkthroughSearch:focus, #protocolSearch:focus, #toolSearch:focus, #otherSearch:focus, #attackSearch:focus{
     border-color: #9860a9;
 }
 

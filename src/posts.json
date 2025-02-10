@@ -13,6 +13,14 @@
             "type": "walkthrough"
         }
     ],
+    "attack": [
+        {
+            "title": "Post 6",
+            "url": "post6.html",
+            "tags": ["xss"],
+            "type": "attack"
+        }
+    ],
     "protocol": [
         {
             "title": "Post 2",
@@ -33,7 +41,8 @@
         {
             "title": "Post 3",
             "url": "post3.html",
-            "tags": ["javascript"]
+            "tags": ["javascript"],
+            "type": "other"
         }
     ]
 }

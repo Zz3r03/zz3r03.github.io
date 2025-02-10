@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>others</title>
+    <title>Attacks</title>
     <link rel="stylesheet" href="/src/styles.css">
 </head>
 <body>
@@ -22,29 +22,29 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        <h1>Others</h1>
+        <h1>Attacks</h1>
         <!-- Search Bar -->
-        <input type="text" id="otherSearch" placeholder="Search others..." oninput="filterothers()">
-        <!-- others Posts Container -->
-        <div id="otherResults" class="search-results">
-            <!-- others posts will be dynamically added here -->
+        <input type="text" id="attackSearch" placeholder="Search attacks..." oninput="filterAttacks()">
+        <!-- Attack Posts Container -->
+        <div id="attackResults" class="search-results">
+            <!-- Attack posts will be dynamically added here -->
         </div>
     </div>
 
     <script>
-        // Load and display other posts when the page loads
-        async function loadothers() {
+        // Load and display attack posts when the page loads
+        async function loadAttacks() {
             try {
                 const response = await fetch('/src/posts.json');
                 const postsByType = await response.json();
-                const otherPosts = postsByType.other || [];
+                const attackPosts = postsByType.attack || [];
 
-                // Display all others posts by default
-                const otherResults = document.getElementById('otherResults');
-                otherResults.innerHTML = ''; // Clear previous results
+                // Display all attack posts by default
+                const attackResults = document.getElementById('attackResults');
+                attackResults.innerHTML = ''; // Clear previous results
 
-                if (otherPosts.length > 0) {
-                    otherPosts.forEach(post => {
+                if (attackPosts.length > 0) {
+                    attackPosts.forEach(post => {
                         const postContainer = document.createElement('div');
                         postContainer.classList.add('post-item');
 
@@ -59,32 +59,32 @@
                         tags.textContent = `${post.tags.join(', ')}`;
                         postContainer.appendChild(tags);
 
-                        otherResults.appendChild(postContainer);
+                        attackResults.appendChild(postContainer);
                     });
                 } else {
-                    otherResults.innerHTML = '<p>No others found.</p>';
+                    attackResults.innerHTML = '<p>No attacks found.</p>';
                 }
             } catch (error) {
-                console.error("Failed to load others:", error);
+                console.error("Failed to load attacks:", error);
             }
         }
 
-        // Filter other posts based on search input
-        function filterothers() {
-            const query = document.getElementById('otherSearch').value.trim().toLowerCase();
-            const otherResults = document.getElementById('otherResults');
-            otherResults.innerHTML = ''; // Clear previous results
+        // Filter attack posts based on search input
+        function filterAttacks() {
+            const query = document.getElementById('attackSearch').value.trim().toLowerCase();
+            const attackResults = document.getElementById('attackResults');
+            attackResults.innerHTML = ''; // Clear previous results
 
             fetch('/src/posts.json')
                 .then(response => response.json())
                 .then(postsByType => {
-                    const otherPosts = postsByType.other || [];
+                    const attackPosts = postsByType.attack || [];
                     const filteredPosts = query ?
-                        otherPosts.filter(post =>
+                        attackPosts.filter(post =>
                             post.title.toLowerCase().includes(query) ||
                             post.tags.some(tag => tag.toLowerCase().includes(query))
                         ) :
-                        otherPosts; // Show all posts if the search bar is empty
+                        attackPosts; // Show all posts if the search bar is empty
 
                     if (filteredPosts.length > 0) {
                         filteredPosts.forEach(post => {
@@ -99,22 +99,22 @@
 
                             const tags = document.createElement('div');
                             tags.classList.add('post-tags');
-                            tags.textContent = `${post.tags.join(', ')}`;
+                            tags.textContent = `Tags: ${post.tags.join(', ')}`;
                             postContainer.appendChild(tags);
 
-                            otherResults.appendChild(postContainer);
+                            attackResults.appendChild(postContainer);
                         });
                     } else {
-                        otherResults.innerHTML = '<p>No others found.</p>';
+                        attackResults.innerHTML = '<p>No attacks found.</p>';
                     }
                 })
                 .catch(error => {
-                    console.error("Failed to filter others:", error);
+                    console.error("Failed to filter attacks:", error);
                 });
         }
 
-        // Load others when the page loads
-        window.onload = loadothers;
+        // Load attacks when the page loads
+        window.onload = loadAttacks;
     </script>
 </body>
 </html>
