@@ -7,9 +7,9 @@
             "type": "walkthrough"
         },
         {
-            "title": "Post 4",
-            "url": "post4.html",
-            "tags": ["tutorial", "webdev"],
+            "title": "EscapeTwo",
+            "url": "/walkthrough/posts/escapetwo",
+            "tags": ["windows", "ad", "ad-cs", "ms-sql", "smb"],
             "type": "walkthrough"
         }
     ],
