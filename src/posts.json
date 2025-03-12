@@ -11,7 +11,14 @@
             "url": "/walkthrough/posts/escapetwo",
             "tags": ["windows", "ad", "ad-cs", "ms-sql", "smb"],
             "type": "walkthrough"
+        },
+        {
+            "title": "Titanic",
+            "url": "/walkthrough/posts/titanic",
+            "tags": ["linux", "web", "lfi", "gitea", "magik"],
+            "type": "walkthrough"
         }
+
     ],
     "attack": [
         {
