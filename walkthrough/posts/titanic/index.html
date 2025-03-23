@@ -653,7 +653,9 @@ tetarone|5d3100cacd4e68a9b8745239f7b2f24ad3001a22aa151adc46c07eec4fe96ceb4c97ad8
 0xtest|77afe868ff1b7d98ce9415fa2e7a75b61d8fbb658397662b0d252e831fc07798a48d3ef8d9439f6e41fded7a9ac631539e8a|pbkdf2$50000$50|51f118dacf8da0c4d942148f06e2c9e8|ecd1b06a773e17c2a7cc5cd58d2cca07
 </code></pre>
 <p>Searching on the internet I stumble upon this post:
-- https://0xdf.gitlab.io/2024/12/14/htb-compiled.html#crack-gitea-hash
+<ul>
+    <li>https://0xdf.gitlab.io/2024/12/14/htb-compiled.html#crack-gitea-hash</li>
+</ul>
 So I'll just follow the steps they did, trying to understand, obviously.</p>
 <p>The hash algorithm is pbkdf2$50000$50, which would mean that the round of iterations is 5000, this means that the hash hash been hashed 5000 times.
 Then, we have to pass the hash from hex to base64 to then feed it to hashcat, this is because the example hashes from the official hashcat web uses base64 instead of hexadecimal .
@@ -667,11 +669,13 @@ XTEAys1OaKm4dFI597LyStMAGiKqFRrcRsB+7E/pbOtMl62EqCdLjq9oM2LaH3b6Sz0=
 d6/oaP8bfZjOlBX6Lnp1th2Pu2WDl2YrDSUugx/Ad5ikjT742UOfbkH97XqaxjFTnoo=
 </code></pre>
 <p>What this does:
-- <strong>sqlite3 gitea.db "select passwd from user"</strong> Sqlite query to select the hash for each user
-- <strong>while read hash; do echo "$hash"</strong> For each hash, echo it, this is used to redirect the output of each hash individually to the other commands piped
-- <strong>xxd -r -p</strong> to convert to hexadecimal to human redable
-- <strong>base64</strong> to finally convert the human readable to base64
-- <strong>done</strong> is closing the while loop</p>
+    <ul>
+        <li><strong>sqlite3 gitea.db "select passwd from user"</strong> Sqlite query to select the hash for each user</li>
+        <li><strong>while read hash; do echo "$hash"</strong> For each hash, echo it, this is used to redirect the output of each hash individually to the other commands piped</li>
+        <li><strong>xxd -r -p</strong> to convert to hexadecimal to human redable</li>
+        <li><strong>base64</strong> to finally convert the human readable to base64</li>
+        <li><strong>done</strong> is closing the while loop</p></li>
+    </ul>
 <p>And we have converted the hexadecimal hashes to base64.</p>
 <p>Now, the next onliner seems complex at first, but instead of selecting only the passwd this time, it selects the passwd, salt and name. Does a while for each line, like on the other oneliner. And then, it separates the different variables with <code>cut</code>, does the same procedure with the hash, and finally outputs the 3 variables, with the sha256:50000 string in the middle, formatting it for then feeding it directly to the hashcat. It also stores it on the gitea.hashes file.</p>
 <pre><code>┌──(oriol㉿zero)-[~/htb/titanic]
@@ -880,7 +884,10 @@ truncate: cannot open 'metadata.log' for writing: Permission denied
 a5a3edc442ab
 </code></pre>
 <p>I found a very interesting article which goes in detail about this magetrick cve:
-- https://mindpatch.medium.com/cve-2024-41817-how-env-var-triggers-rce-in-imagemagicks-appimage-14d54aba5613</p>
+    <ul>
+        <li>https://mindpatch.medium.com/cve-2024-41817-how-env-var-triggers-rce-in-imagemagicks-appimage-14d54aba5613</li>
+    </ul>
+</p>
 <p>If I wanted to create a reverse shell as root, simply put the reverse shell inside the system() function on the shared library and set up the listener.</p>
 <h2 id="solutions">Solutions</h2>
 <ul>

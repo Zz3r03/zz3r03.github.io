@@ -17,6 +17,12 @@
             "url": "/walkthrough/posts/titanic",
             "tags": ["linux", "web", "lfi", "gitea", "magik"],
             "type": "walkthrough"
+        },
+        {
+            "title": "Dog",
+            "url": "/walkthrough/posts/dog",
+            "tags": ["linux", "web", "backdrop", "revshell"],
+            "type": "walkthrough"
         }
 
     ],
