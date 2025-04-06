@@ -995,7 +995,7 @@ BloodyAD can do basic ldap operations, like add, get, remove and set.</p>
 [*] DACL backed up to dacledit-20250305-194536.bak
 [*] DACL modified successfully!
 </code></pre>
-<p>I will first try to use the shadow credentials attack, as the Kerberoast attack is useful with service user accounts (like SQL service users, ISS,...), and I searched and I don't see ca_svc as a name of a certificate user, meaning that this is a custom user which manages the certificates, not a user for the certificate service (?).</p>
+<p>I will first try to use the shadow credentials attack, as the Kerberoast attack at the moment I believed that it only was is useful with service user accounts (like SQL service users, ISS,...), and I searched and I don't see ca_svc as a name of a certificate user, meaning that this is a custom user which manages the certificates, not a user for the certificate service (?). Note that this could also work, because with the WriteOwner privileges we can add a SNP to the user and then do a kerberoast attack, but at the moment I didn't know lol.</p>
 <p>Forcing a password change would screw up all the other users working on the box.</p>
 <p>So, let's try a shadow credentials attack.
 I've read this very useful post which explains technicalities and also how to attack the shadow credentials.
@@ -1006,7 +1006,7 @@ I've read this very useful post which explains technicalities and also how to at
 - This public key will be used (with also our private key that pywhisker also created) to create a pfx certificate.
 - That pfx certificate will be used to prove ownership of the private key during authentication
 - Get a TGT or obtain the NT Hash of the ca_svc user</p>
-<p><img src="./src/escapetwo07.png"/>/p>
+<p><img src="./src/escapetwo07.png"/></p>
 <p>With pyhisker we can see the <code>msDS-KeyCredentialLink</code> properties:</p>
 <pre><code>┌──(oriol㉿zero)-[~/escapetwo/pywhisker/pywhisker]
 └─$ python pywhisker.py -d &quot;sequel.htb&quot; -u &quot;ryan&quot; -p &quot;WqSZAF6CysDQbGb3&quot; --target &quot;ca_svc&quot; --action &quot;list&quot;

@@ -23,6 +23,12 @@
             "url": "/walkthrough/posts/dog",
             "tags": ["linux", "web", "backdrop", "revshell"],
             "type": "walkthrough"
+        },
+        {
+            "title": "Administrator",
+            "url": "/walkthrough/posts/administrator",
+            "tags": ["windows", "ad", "kerberoast", "dsync"],
+            "type": "walkthrough"
         }
 
     ],
