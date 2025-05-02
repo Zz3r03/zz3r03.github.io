@@ -29,6 +29,18 @@
             "url": "/walkthrough/posts/administrator",
             "tags": ["windows", "ad", "kerberoast", "dsync"],
             "type": "walkthrough"
+        },
+        {
+            "title": "Heal",
+            "url": "/walkthrough/posts/heal",
+            "tags": ["linux", "ruby-on-rails", "lfi", "cve"],
+            "type": "walkthrough"
+        },
+        {
+            "title": "Nocturnal",
+            "url": "/walkthrough/posts/nocturnal",
+            "tags": ["linux", "bac", "cve"],
+            "type": "walkthrough"
         }
 
     ],
